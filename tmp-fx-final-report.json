@@ -1,0 +1,56 @@
+{
+  "files": {
+    "fx": true,
+    "css": true,
+    "baseline": true,
+    "spec": true,
+    "verification": true
+  },
+  "indexIncludes": {
+    "fxJs": true,
+    "arcadeCss": true
+  },
+  "battle": {
+    "onFx": true,
+    "critChance": true
+  },
+  "ui": {
+    "playBattleFx": true,
+    "playResult": true,
+    "playUi": true
+  },
+  "main": {
+    "arcadeFxInit": true
+  },
+  "fx": {
+    "particleCap": true,
+    "lowFps": true,
+    "flashCap": true,
+    "shakeCap": true,
+    "hasTrigger": true,
+    "hasPlayBattleFx": true,
+    "hasPlayResult": true,
+    "hasPlayUi": true,
+    "hasSfx": true,
+    "hasAudio": true
+  },
+  "css": {
+    "comboHud": true,
+    "actionBar": true
+  },
+  "specs": {
+    "ui_click": true,
+    "select": true,
+    "battle_start": true,
+    "hit": true,
+    "crit": true,
+    "heal": true,
+    "buff": true,
+    "debuff": true,
+    "ko": true,
+    "combo": true,
+    "victory": true,
+    "defeat": true
+  },
+  "allOk": true
+}

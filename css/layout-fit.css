@@ -1,0 +1,540 @@
+/* 一屏紧凑布局：选角 + 战斗（横向四列） */
+
+html,
+body {
+  height: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+#app {
+  width: min(1480px, calc(100% - 12px));
+  margin: 0 auto;
+  padding: 8px 0 10px;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.topbar {
+  margin-bottom: 6px;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+
+.brand-mark {
+  width: 36px;
+  height: 36px;
+  font-size: 18px;
+  border-radius: 12px;
+}
+
+.brand h1 {
+  font-size: 1.12rem;
+}
+
+.brand p {
+  font-size: 0.78rem;
+  margin-top: 1px;
+}
+
+.phase-badge {
+  padding: 5px 10px;
+  font-size: 0.8rem;
+}
+
+/* ===== 选角：一屏 ===== */
+#screen-select.active {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: calc(100dvh - 64px);
+  max-height: calc(100dvh - 64px);
+  overflow: hidden;
+}
+
+#screen-select .select-main-panel {
+  min-height: 0;
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+  gap: 10px;
+  overflow: hidden;
+}
+
+#screen-select .selected-slots {
+  gap: 10px;
+}
+
+#screen-select .selected-slot,
+#screen-select .selected-slot-body {
+  min-height: 180px;
+}
+
+#screen-select .selected-slot-avatar {
+  height: 120px;
+}
+
+#screen-select .select-thumb-section {
+  min-height: 0;
+  overflow: auto;
+}
+
+#screen-select .select-card-grid,
+#screen-select .select-thumb-grid {
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 8px;
+}
+
+#screen-select .select-avatar-wrap {
+  height: 78px;
+}
+
+#screen-select .select-avatar {
+  width: 64px;
+  height: 64px;
+}
+
+/* ===== 战斗：横向四列 ===== */
+#screen-battle.active {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  height: calc(100dvh - 64px);
+  max-height: calc(100dvh - 64px);
+  gap: 0;
+}
+
+.battle-field,
+.battle-layout,
+.battle-field.four-columns,
+.battle-field.vertical-stack {
+  display: grid;
+  grid-template-columns:
+    minmax(190px, 1.05fr)
+    minmax(240px, 1.2fr)
+    minmax(190px, 1.05fr)
+    minmax(230px, 1.15fr);
+  grid-template-rows: minmax(0, 1fr);
+  gap: 8px;
+  align-items: stretch;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.team-column {
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 8px;
+  overflow: hidden;
+}
+
+.team-title {
+  margin-bottom: 6px;
+  font-size: 0.86rem;
+  flex: 0 0 auto;
+  line-height: 1.25;
+}
+
+.team-sub {
+  margin-top: 1px;
+  font-size: 0.68rem;
+}
+
+.team-column.enemy .team-title {
+  text-align: left;
+  color: #ff8a95;
+}
+
+/* 紧凑角色卡：图片 + 底部血条，竖向 3 人 */
+.team-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  align-content: stretch;
+}
+
+.fighter-card {
+  padding: 6px;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.fighter-layout {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 5px;
+  min-height: 0;
+  flex: 1 1 auto;
+  height: 100%;
+}
+
+.avatar-frame {
+  min-height: 0;
+  height: 100%;
+}
+
+.avatar-frame .avatar {
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  padding: 6px 6px 22px;
+  box-sizing: border-box;
+  object-fit: contain;
+  object-position: center center;
+}
+
+.fighter-name-chip {
+  font-size: 0.7rem;
+  padding: 2px 6px;
+}
+
+.hp-bar {
+  margin-top: 0;
+  height: 8px;
+}
+
+.hp-text,
+.buff-line {
+  margin-top: 1px;
+  font-size: 0.7rem;
+  line-height: 1.2;
+}
+
+.fighter-skills {
+  bottom: 52px;
+  max-height: calc(100% - 64px);
+}
+
+.fighter-card .skill-mini.compact,
+.fighter-card .skill-mini.vertical {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 3px;
+  height: auto;
+  align-content: start;
+}
+
+.fighter-card .skill-mini.compact li,
+.fighter-card .skill-mini.vertical li {
+  margin-bottom: 0;
+  padding: 4px 6px;
+  min-width: 0;
+  min-height: 0;
+}
+
+.fighter-card .skill-mini.compact .skill-icon,
+.fighter-card .skill-mini.vertical .skill-icon {
+  width: 1.15em;
+  min-width: 1.15em;
+  height: 1.15em;
+  font-size: 0.72rem;
+}
+
+.skill-mini-text strong {
+  font-size: 0.68rem;
+}
+
+.skill-mini-text em {
+  font-size: 0.6rem;
+}
+
+.skill-mini-desc {
+  font-size: 0.62rem;
+}
+
+.battle-center {
+  min-height: 0;
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 6px;
+  overflow: hidden;
+}
+
+.battle-center-main {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: minmax(220px, 1.55fr) minmax(100px, 0.7fr);
+  gap: 8px;
+  min-height: 0;
+  height: 100%;
+}
+
+.battle-info-panel {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 6px;
+  overflow: hidden;
+}
+
+.turn-banner {
+  padding: 7px 10px;
+  font-size: 0.84rem;
+  border-radius: 12px;
+}
+
+.current-actor {
+  min-height: 0;
+  height: 100%;
+}
+
+.current-actor-avatar {
+  width: min(200px, 84%);
+  height: min(180px, 68%);
+}
+
+.battle-stage {
+  height: 26px;
+  min-height: 22px;
+  max-height: 30px;
+  border-radius: 12px;
+  flex: 0 0 auto;
+}
+
+.monster-intel[hidden] {
+  display: none !important;
+}
+
+.battle-log-wrap {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.battle-log {
+  min-height: 0;
+  max-height: none;
+  height: 100%;
+  overflow: auto;
+  padding: 6px 8px;
+  font-size: 0.7rem;
+  line-height: 1.25;
+  border-radius: 12px;
+}
+
+.action-bar {
+  margin-top: 0;
+  padding: 8px 10px 10px;
+  min-height: 0;
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 8px;
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(12, 24, 42, 0.24), rgba(8, 16, 28, 0.1)),
+    rgba(8, 16, 28, 0.16);
+  border: 1px solid rgba(120, 190, 255, 0.14);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+}
+
+.action-meta {
+  margin-bottom: 0;
+  gap: 8px;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.actor-info {
+  font-size: 0.86rem;
+}
+
+.target-hint {
+  font-size: 0.76rem;
+}
+
+.skill-buttons {
+  grid-template-columns: 1fr;
+  grid-template-rows: auto repeat(3, minmax(64px, 1fr));
+  gap: 6px;
+  align-items: stretch;
+  min-height: 0;
+  height: 100%;
+}
+
+.skill-owner {
+  min-height: 52px;
+  padding: 5px 7px;
+  background: rgba(8, 18, 32, 0.24);
+}
+
+.skill-owner-frame {
+  width: 40px;
+  height: 40px;
+}
+
+.skill-btn {
+  min-height: 0;
+  height: 100%;
+  max-height: 108px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 18% 30%, color-mix(in srgb, var(--accent, #63d2ff) 22%, transparent), transparent 55%),
+    rgba(8, 18, 32, 0.32);
+}
+
+.skill-btn .skill-icon {
+  width: 1.9em;
+  min-width: 1.9em;
+  height: 1.9em;
+  font-size: 1.05rem;
+}
+
+.skill-btn .skill-meta {
+  padding-left: calc(1.9em + 10px);
+  font-size: 0.72rem;
+}
+
+.skill-name {
+  font-size: 0.88rem;
+}
+
+.skill-meta {
+  font-size: 0.72rem;
+}
+
+.skill-desc {
+  display: none;
+}
+
+.btn.auto-toggle {
+  min-height: 32px;
+  padding: 6px 10px;
+  font-size: 0.8rem;
+}
+
+.auto-skill-tip {
+  padding: 8px 10px;
+  font-size: 0.8rem;
+}
+
+/* 窄屏：允许纵向滚动，改回上下堆叠 */
+@media (max-width: 1100px) {
+  #screen-select.active,
+  #screen-battle.active {
+    height: auto;
+    max-height: none;
+  }
+
+  #screen-select.active {
+    grid-template-columns: 1fr;
+  }
+
+  .battle-field,
+  .battle-layout,
+  .battle-field.four-columns,
+  .battle-field.vertical-stack {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto auto;
+    height: auto;
+    overflow: visible;
+  }
+
+  .team-column,
+  .battle-center,
+  .action-bar {
+    height: auto;
+    overflow: visible;
+  }
+
+  .team-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: minmax(0, 1fr);
+    min-height: 140px;
+  }
+
+  .battle-center-main {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+  }
+
+  .skill-buttons {
+    grid-template-columns: minmax(120px, 0.7fr) repeat(3, minmax(0, 1fr));
+    grid-template-rows: auto;
+    height: auto;
+  }
+
+  .skill-btn {
+    min-height: 62px;
+    height: auto;
+  }
+
+  .battle-log {
+    min-height: 120px;
+    max-height: 180px;
+  }
+}
+
+/* 高度特别矮时进一步压缩 */
+@media (max-height: 820px) {
+  #screen-select .selected-slot,
+  #screen-select .selected-slot-body {
+    min-height: 160px;
+  }
+
+  #screen-select .selected-slot-avatar {
+    height: 110px;
+  }
+
+  #screen-select .select-avatar-wrap {
+    height: 70px;
+  }
+
+  #screen-select .select-avatar {
+    width: 58px;
+    height: 58px;
+  }
+
+  .battle-stage {
+    height: 30px;
+  }
+
+  .current-actor-avatar {
+    width: min(170px, 80%);
+    height: min(150px, 62%);
+  }
+
+  .fighter-name-chip {
+    font-size: 0.68rem;
+  }
+}
+
+@media (max-height: 700px) {
+  .brand p {
+    display: none;
+  }
+
+  .buff-line {
+    display: none;
+  }
+
+  .skill-desc {
+    display: none;
+  }
+
+  .current-actor-avatar {
+    width: min(150px, 78%);
+    height: min(130px, 58%);
+  }
+}

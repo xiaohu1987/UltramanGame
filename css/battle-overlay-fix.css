@@ -1,0 +1,100 @@
+/* 战斗页局部修复：右侧遮挡 + 角色完整显示（可缩略） */
+
+/* 1) COMBO 不再压住右侧技能栏，改到顶部中央 */
+.fx-combo-hud {
+  right: auto !important;
+  left: 50% !important;
+  top: 64px !important;
+  transform: translateX(-50%);
+  min-width: 84px;
+  padding: 6px 8px 8px;
+  z-index: 20;
+}
+
+@media (max-width: 980px) {
+  .fx-combo-hud {
+    right: auto !important;
+    left: 50% !important;
+    top: 58px !important;
+    transform: translateX(-50%);
+  }
+}
+
+/* 2) 角色图完整显示：contain + 黑底缩略，绝不裁切 */
+.avatar-frame {
+  background:
+    radial-gradient(circle at 50% 18%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 58%),
+    #05080f !important;
+  display: grid !important;
+  place-items: center !important;
+  overflow: hidden !important;
+}
+
+/* 关键：不要 width/height 100% 再 contain，容易被布局压扁后看起来像裁切。
+   修正：auto 会按原图像素溢出，再被 overflow 裁切成只露头。
+   必须 width/height 100% + contain，整图缩进框内。 */
+.avatar-frame .avatar,
+.fighter-card .avatar,
+.fighter-layout .avatar {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  padding: 6px 6px 22px !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+  object-fit: contain !important;
+  object-position: center center !important;
+  display: block !important;
+}
+
+/* 名字条不遮挡主体：半透明悬浮，图片整体上移一点 */
+.fighter-name-chip {
+  background: rgba(6, 12, 22, 0.78) !important;
+  pointer-events: none;
+}
+
+/* 中央当前角色大图 */
+.current-actor-avatar {
+  background:
+    radial-gradient(circle at 50% 20%, color-mix(in srgb, var(--accent, #63d2ff) 24%, transparent), transparent 65%),
+    #05080f !important;
+  display: grid !important;
+  place-items: center !important;
+  overflow: hidden !important;
+}
+
+/* 兼容两种结构：img.current-actor-avatar 或 .current-actor-avatar > img */
+img.current-actor-avatar,
+.current-actor-avatar img {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  padding: 6px !important;
+  margin: 0 auto !important;
+  box-sizing: border-box !important;
+  object-fit: contain !important;
+  object-position: center center !important;
+  display: block !important;
+}
+
+/* 右侧技能栏小头像 */
+.skill-owner-frame {
+  background: #05080f !important;
+  display: grid !important;
+  place-items: center !important;
+  overflow: hidden !important;
+}
+
+.skill-owner-avatar {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  padding: 2px !important;
+  box-sizing: border-box !important;
+  object-fit: contain !important;
+  object-position: center center !important;
+  display: block !important;
+}

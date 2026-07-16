@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>奥特曼打怪兽</title>
+  <!-- 小朋友友好：大图少字，选 3 打 3 -->
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/select-ui.css" />
+  <link rel="stylesheet" href="css/battle-ui.css" />
+  <link rel="stylesheet" href="css/arcade-fx.css" />
+  <link rel="stylesheet" href="css/layout-fit.css" />
+  <link rel="stylesheet" href="css/kids-ui.css" />
+  <link rel="stylesheet" href="css/battle-overlay-fix.css" />
+  <link rel="stylesheet" href="css/fullbody-fix.css" />
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark">⚡</span>
+        <div>
+          <h1>奥特曼打怪兽</h1>
+          <p>选 3 个奥特曼，打败怪兽！</p>
+        </div>
+      </div>
+      <div id="phase-badge" class="phase-badge">选人</div>
+    </header>
+
+    <main id="screen-select" class="screen active">
+      <section class="panel select-main-panel">
+        <div class="panel-head select-hero-head">
+          <div class="select-hero-copy">
+            <h2>点下面小图选奥特曼</h2>
+            <p>上面 3 个大框是你的队伍，选满就能开战</p>
+          </div>
+          <div class="select-progress" aria-live="polite">
+            <div class="select-progress-label">已选</div>
+            <div class="select-progress-count"><span id="select-count">0</span><span class="select-progress-total">/3</span></div>
+            <div class="select-progress-track" aria-hidden="true">
+              <span id="select-progress-fill" class="select-progress-fill" style="width: 0%"></span>
+            </div>
+            <div id="select-status-text" class="select-status-text">再选 3 个</div>
+          </div>
+        </div>
+
+        <!-- 上：3 个已选大图框 -->
+        <div id="selected-slots" class="selected-slots" aria-label="已选奥特曼大图">
+          <div class="selected-slot empty" data-slot="0">
+            <div class="selected-slot-order">1</div>
+            <div class="selected-slot-body">
+              <div class="selected-slot-empty">空位</div>
+            </div>
+          </div>
+          <div class="selected-slot empty" data-slot="1">
+            <div class="selected-slot-order">2</div>
+            <div class="selected-slot-body">
+              <div class="selected-slot-empty">空位</div>
+            </div>
+          </div>
+          <div class="selected-slot empty" data-slot="2">
+            <div class="selected-slot-order">3</div>
+            <div class="selected-slot-body">
+              <div class="selected-slot-empty">空位</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 中：操作按钮 -->
+        <div class="select-toolbar">
+          <div class="select-filter-hint">点下面小图选人 · 再点可取消</div>
+          <div class="panel-actions select-actions">
+            <button id="btn-random" class="btn ghost accent" type="button">🎲 随机</button>
+            <button id="btn-clear" class="btn ghost" type="button">清空</button>
+            <button id="btn-start" class="btn primary" type="button" disabled>开战！</button>
+          </div>
+        </div>
+
+        <!-- 下：全角色缩略图 -->
+        <div class="select-thumb-section">
+          <div class="select-thumb-label">全部奥特曼</div>
+          <div id="hero-grid" class="card-grid select-card-grid select-thumb-grid"></div>
+        </div>
+
+        <!-- 兼容旧逻辑：隐藏侧栏列表节点，供 JS 同步写入 -->
+        <div id="selected-list" class="selected-list empty" hidden>还没选人</div>
+      </section>
+    </main>
+
+    <main id="screen-battle" class="screen">
+      <section class="battle-field four-columns">
+        <!-- 1. 奥特曼（左） -->
+        <div class="team-column ally battle-row">
+          <div class="team-title">
+            <span>奥特曼</span>
+            <span class="team-sub">我方</span>
+          </div>
+          <div id="ally-team" class="team-row"></div>
+        </div>
+
+        <!-- 2. 当前人物 + 战斗信息（中左） -->
+        <div class="battle-center battle-row">
+          <div id="turn-banner" class="turn-banner">准备开战</div>
+          <div class="battle-center-main">
+            <div id="current-actor" class="current-actor" aria-live="polite">
+              <div class="current-actor-empty">等待出手</div>
+            </div>
+            <div class="battle-info-panel">
+              <div id="battle-stage" class="battle-stage" aria-hidden="true">
+                <div class="stage-glow stage-glow-left"></div>
+                <div class="stage-glow stage-glow-right"></div>
+                <div class="stage-beam"></div>
+                <div class="stage-floor"></div>
+              </div>
+              <!-- 兼容旧节点，默认隐藏 -->
+              <section id="monster-intel" class="monster-intel" hidden aria-hidden="true">
+                <div class="monster-intel-head">
+                  <h3>怪兽技能</h3>
+                </div>
+                <div id="monster-intel-list" class="monster-intel-list"></div>
+              </section>
+              <div class="battle-log-wrap">
+                <div class="battle-log-label">战斗信息</div>
+                <div id="battle-log" class="battle-log" aria-live="polite"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. 怪兽（中右） -->
+        <div class="team-column enemy battle-row">
+          <div class="team-title">
+            <span>怪兽</span>
+            <span class="team-sub">敌方</span>
+          </div>
+          <div id="enemy-team" class="team-row"></div>
+        </div>
+
+        <!-- 4. 技能操作（右） -->
+        <section class="action-bar battle-row">
+          <div class="action-meta">
+            <div id="actor-info" class="actor-info">准备出手</div>
+            <div class="action-tools">
+              <div id="target-hint" class="target-hint"></div>
+              <button id="btn-auto-battle" class="btn ghost auto-toggle" type="button" aria-pressed="false">
+                <span class="auto-dot" aria-hidden="true"></span>
+                <span id="auto-battle-label">自动：关</span>
+              </button>
+            </div>
+          </div>
+          <div id="skill-buttons" class="skill-buttons"></div>
+          <button id="btn-cancel-target" class="btn ghost" type="button" hidden>取消</button>
+        </section>
+      </section>
+    </main>
+
+    <div id="result-modal" class="modal" hidden>
+      <div class="modal-card">
+        <h2 id="result-title">打完了</h2>
+        <p id="result-desc"></p>
+        <button id="btn-restart" class="btn primary" type="button">再玩一次</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/battle.js"></script>
+  <script src="js/fx.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

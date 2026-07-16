@@ -1,0 +1,476 @@
+/* 小朋友友好：大图少字 + 新布局覆盖 */
+
+/* ===== 选角：上三框大图，下缩略图 ===== */
+#screen-select.active {
+  grid-template-columns: 1fr;
+}
+
+#screen-select .select-kicker {
+  display: none;
+}
+
+#screen-select .select-hero-copy h2 {
+  font-size: 1.28rem;
+}
+
+#screen-select .select-hero-copy p {
+  font-size: 0.92rem;
+}
+
+#screen-select .select-filter-hint {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #d7f0ff;
+}
+
+#screen-select .selected-slots {
+  gap: 12px;
+}
+
+#screen-select .selected-slot {
+  min-height: 230px;
+}
+
+#screen-select .selected-slot-body {
+  min-height: 230px;
+}
+
+#screen-select .selected-slot-avatar {
+  width: min(170px, 78%);
+  height: 160px;
+}
+
+#screen-select .selected-slot-name {
+  font-size: 1.08rem;
+}
+
+#screen-select .select-card-grid,
+#screen-select .select-thumb-grid {
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+  gap: 10px;
+}
+
+#screen-select .select-card,
+#screen-select .select-thumb {
+  min-height: 0;
+  grid-template-rows: auto auto auto;
+}
+
+#screen-select .select-avatar-wrap {
+  height: 92px;
+  background:
+    radial-gradient(circle at 50% 20%, color-mix(in srgb, var(--accent) 40%, transparent), transparent 62%),
+    rgba(255, 255, 255, 0.04);
+}
+
+#screen-select .select-avatar {
+  width: 78px;
+  height: 78px;
+  object-fit: contain;
+  object-position: center top;
+}
+
+#screen-select .select-card-body {
+  padding: 6px 8px 2px;
+}
+
+#screen-select .select-card-title h3 {
+  font-size: 0.86rem;
+  text-align: center;
+  line-height: 1.2;
+}
+
+#screen-select .select-stat-row,
+#screen-select .select-skill-mini,
+#screen-select .subtitle {
+  display: none !important;
+}
+
+#screen-select .select-flag {
+  margin: 0 8px 8px;
+  padding: 4px 6px;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+#screen-select .selected-list[hidden],
+#screen-select .select-side-panel {
+  display: none !important;
+}
+
+/* ===== 战斗：横向四列 + 头像默认隐藏技能 ===== */
+.team-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  overflow: hidden;
+  align-content: stretch;
+}
+
+.fighter-card {
+  padding: 7px;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.fighter-layout {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 5px;
+  align-items: stretch;
+  min-height: 0;
+  flex: 1 1 auto;
+  height: 100%;
+}
+
+.avatar-frame {
+  width: 100%;
+  min-height: 0;
+  height: 100%;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+}
+
+.avatar-frame .avatar {
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  padding: 6px 6px 22px;
+  box-sizing: border-box;
+  border-radius: 12px;
+  object-fit: contain;
+  object-position: center center;
+}
+
+.fighter-name-chip {
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.fighter-top,
+.fighter-stats,
+.side-tag {
+  display: none !important;
+}
+
+.hp-bar {
+  margin-top: 0;
+  height: 10px;
+}
+
+.hp-text {
+  margin-top: 2px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #e8f7ff;
+}
+
+.buff-line {
+  min-height: 0;
+  margin-top: 2px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #ffd166;
+}
+
+.buff-line:empty {
+  display: none;
+}
+
+.fighter-skills-label {
+  display: none;
+}
+
+.fighter-skills {
+  display: none;
+}
+
+.fighter-card.skill-peek:not(.current):not(.targetable) .fighter-skills {
+  display: block;
+}
+
+.fighter-card .skill-mini.compact,
+.fighter-card .skill-mini.vertical {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 4px;
+  height: auto;
+  align-content: start;
+}
+
+.fighter-card .skill-mini.compact li,
+.fighter-card .skill-mini.vertical li {
+  padding: 5px 7px;
+  min-width: 0;
+  min-height: 0;
+}
+
+.fighter-card .skill-mini.compact .skill-mini-text strong,
+.fighter-card .skill-mini.vertical .skill-mini-text strong {
+  font-size: 0.76rem;
+}
+
+.fighter-card .skill-mini.compact .skill-mini-text em,
+.fighter-card .skill-mini.vertical .skill-mini-text em {
+  font-size: 0.66rem;
+}
+
+.skill-mini-desc {
+  display: block;
+  font-size: 0.66rem;
+  line-height: 1.25;
+  color: #b7d7ef;
+}
+
+/* 中间当前行动大图 */
+.current-actor {
+  min-height: 0;
+  height: 100%;
+}
+
+.current-actor-avatar {
+  width: min(230px, 88%);
+  height: min(210px, 72%);
+}
+
+.current-actor-name {
+  font-size: 1.22rem;
+  font-weight: 800;
+}
+
+.current-actor-hp {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+/* 中间情报默认隐藏 */
+.monster-intel[hidden] {
+  display: none !important;
+}
+
+/* 右侧技能竖排 */
+.skill-buttons {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: auto repeat(3, minmax(72px, 1fr));
+  gap: 8px;
+  align-items: stretch;
+  min-height: 0;
+  height: 100%;
+}
+
+.skill-owner {
+  grid-column: auto;
+  min-height: 58px;
+  padding: 6px 8px;
+  background: rgba(8, 18, 32, 0.24);
+  backdrop-filter: blur(10px);
+}
+
+.skill-owner-frame {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+}
+
+.skill-owner-avatar {
+  object-fit: contain;
+  object-position: center center;
+}
+
+.skill-owner-meta strong {
+  font-size: 0.92rem;
+}
+
+.skill-owner-meta span {
+  font-size: 0.74rem;
+}
+
+/* 右侧技能按钮填满高度 */
+.skill-btn {
+  min-height: 0;
+  height: 100%;
+  max-height: 118px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 18% 30%, color-mix(in srgb, var(--accent, #63d2ff) 24%, transparent), transparent 55%),
+    rgba(8, 18, 32, 0.32);
+  backdrop-filter: blur(12px);
+}
+
+.skill-btn .skill-icon {
+  width: 2.15em;
+  min-width: 2.15em;
+  height: 2.15em;
+  font-size: 1.18rem;
+  border-radius: 12px;
+}
+
+.skill-btn .skill-meta {
+  padding-left: calc(2.15em + 10px);
+}
+
+.skill-name {
+  font-size: 1.02rem;
+  font-weight: 800;
+}
+
+.skill-meta {
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.skill-desc {
+  display: none !important;
+}
+
+.actor-info {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.target-hint {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: #ffe7a3;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 209, 102, 0.16);
+  border: 1px solid rgba(255, 209, 102, 0.38);
+}
+
+.btn.auto-toggle {
+  min-height: 40px;
+  padding: 8px 12px;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.btn {
+  font-size: 1rem;
+}
+
+.btn.primary {
+  min-height: 44px;
+  padding: 12px 18px;
+  font-size: 1.05rem;
+}
+
+.turn-banner {
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.021em;
+}
+
+.team-title {
+  font-size: 1rem;
+}
+
+.team-sub {
+  font-size: 0.78rem;
+}
+
+/* 战斗日志更短更轻 */
+.battle-log {
+  font-size: 0.72rem;
+  color: rgba(215, 236, 255, 0.78);
+  background: rgba(6, 12, 22, 0.4);
+}
+
+/* 结果弹窗更醒目 */
+.modal-card h2 {
+  font-size: 1.8rem;
+}
+
+.modal-card p {
+  font-size: 1.05rem;
+}
+
+/* 矮屏时仍优先保图 */
+@media (max-height: 820px) {
+  #screen-select .selected-slot,
+  #screen-select .selected-slot-body {
+    min-height: 180px;
+  }
+
+  #screen-select .selected-slot-avatar {
+    height: 120px;
+  }
+
+  #screen-select .select-avatar-wrap {
+    height: 80px;
+  }
+
+  #screen-select .select-avatar {
+    width: 68px;
+    height: 68px;
+  }
+
+  .current-actor-avatar {
+    width: min(180px, 82%);
+    height: min(160px, 64%);
+  }
+}
+
+@media (max-height: 700px) {
+  #screen-select .selected-slot,
+  #screen-select .selected-slot-body {
+    min-height: 150px;
+  }
+
+  #screen-select .selected-slot-avatar {
+    height: 96px;
+  }
+
+  #screen-select .select-avatar-wrap {
+    height: 70px;
+  }
+
+  #screen-select .select-avatar {
+    width: 58px;
+    height: 58px;
+  }
+
+  .fighter-layout {
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+
+  .current-actor-avatar {
+    width: min(155px, 78%);
+    height: min(135px, 58%);
+  }
+}
+
+@media (max-width: 1100px) {
+  #screen-select .select-card-grid,
+  #screen-select .select-thumb-grid {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  }
+
+  .team-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .skill-buttons {
+    grid-template-columns: minmax(120px, 0.7fr) repeat(3, minmax(0, 1fr));
+    grid-template-rows: auto;
+    height: auto;
+  }
+
+  .skill-btn {
+    min-height: 72px;
+    height: auto;
+  }
+
+  .fighter-layout {
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+}

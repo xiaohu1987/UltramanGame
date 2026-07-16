@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>FX Verify</title>
+</head>
+<body>
+  <pre id="out">running...</pre>
+  <script>
+    window.__fxLog = [];
+    const origError = console.error.bind(console);
+    console.error = (...args) => {
+      window.__fxLog.push(args.map(String).join(" "));
+      origError(...args);
+    };
+  </script>
+  <script src="js/fx.js"></script>
+  <script>
+    function assert(cond, msg) {
+      if (!cond) throw new Error(msg);
+    }
+
+    try {
+      const fx = window.ArcadeFX;
+      assert(fx, "ArcadeFX missing");
+      fx.init({ shakeTarget: document.body });
+      fx.unlockAudio();
+
+      [
+        "trigger",
+        "playBattleFx",
+        "playResult",
+        "playUi",
+        "spawnParticles",
+        "shakeScreen",
+        "flashScreen",
+        "showFloatGlobal",
+        "sfx",
+        "registerCombo",
+        "resetCombo",
+      ].forEach((k) => assert(typeof fx[k] === "function", "missing " + k));
+
+      const specs = window.FX_SPECS;
+      [
+        "ui_click",
+        "select",
+        "battle_start",
+        "hit",
+        "crit",
+        "heal",
+        "buff",
+        "debuff",
+        "ko",
+        "combo",
+        "victory",
+        "defeat",
+      ].forEach((k) => assert(specs[k], "spec missing " + k));
+
+      fx.resetCombo();
+      fx.trigger("battle_start", { x: 200, y: 200, power: 1.2 });
+      assert(fx.particles.length > 0, "battle_start particles");
+
+      const c3 = fx.registerCombo(true) && fx.registerCombo(true) && fx.registerCombo(true);
+      assert(fx.combo === 3, "combo should be 3, got " + fx.combo);
+
+      fx.playBattleFx({
+        actorUid: "a",
+        targetUid: "b",
+        skillType: "damage",
+        amount: 220,
+        crit: true,
+        message: "暴击造成 220 点伤害！",
+      });
+      fx.playBattleFx({
+        actorUid: "a",
+        targetUid: "b",
+        skillType: "heal",
+        amount: 120,
+        message: "恢复 120",
+      });
+      fx.playBattleFx({
+        actorUid: "a",
+        targetUid: "b",
+        skillType: "buff_atk",
+        amount: 20,
+        message: "攻击提升",
+      });
+      fx.playBattleFx({
+        actorUid: "a",
+        targetUid: "b",
+        skillType: "debuff_def",
+        amount: 15,
+        message: "防御降低",
+      });
+      fx.playBattleFx({
+        actorUid: "a",
+        targetUid: "b",
+        skillType: "damage",
+        amount: 999,
+        crit: true,
+        message: "造成 999 点伤害，目标 倒下了！",
+      });
+      fx.playResult("hero");
+      fx.playResult("monster");
+      fx.playUi("click");
+      fx.playUi("select");
+      fx.playUi("start");
+
+      for (let i = 0; i < 50; i += 1) fx.spawnParticles(100, 100, 40, "crit", 1.5);
+      assert(fx.particles.length <= 180, "particle cap broken: " + fx.particles.length);
+
+      fx.flashScreen(2, "255,255,255");
+      assert(fx.flash.a <= 0.75, "flash cap broken");
+      fx.shakeScreen(100, 300);
+      assert(fx.shake.power <= 16, "shake cap broken");
+      assert(fx.running === true, "loop not running");
+
+      setTimeout(() => {
+        const out = {
+          ok: true,
+          particles: fx.particles.length,
+          combo: fx.combo,
+          flash: fx.flash.a,
+          shake: fx.shake.power,
+          fps: Math.round(fx.fps),
+          perfScale: fx.perfScale,
+          specs: Object.keys(specs),
+          errors: window.__fxLog,
+        };
+        document.getElementById("out").textContent = JSON.stringify(out, null, 2);
+        document.title = "FX_VERIFY_OK";
+        console.log("FX_VERIFY_OK " + JSON.stringify(out));
+      }, 300);
+    } catch (err) {
+      document.getElementById("out").textContent = String(err && err.stack ? err.stack : err);
+      document.title = "FX_VERIFY_FAIL";
+      console.error(err);
+    }
+  </script>
+</body>
+</html>
