@@ -45,6 +45,8 @@
       this.resolveDelay = options.resolveDelay || 900;
       this.aiThinkDelay = options.aiThinkDelay || 650;
       this.autoPlayerDelay = options.autoPlayerDelay || 420;
+      this.attackRampStartTurn = options.attackRampStartTurn ?? 20;
+      this.attackRampPerTurn = options.attackRampPerTurn ?? 0.1;
       this._autoTimer = null;
     }
 
@@ -56,6 +58,10 @@
       if (side === "hero") return this.heroes.filter((u) => u.alive);
       if (side === "monster") return this.monsters.filter((u) => u.alive);
       return this.allUnits().filter((u) => u.alive);
+    }
+
+    getAttackRamp() {
+      return Math.max(0, this.turn - this.attackRampStartTurn + 1) * this.attackRampPerTurn;
     }
 
     start() {
@@ -70,11 +76,16 @@
       if (this.checkEnd()) return;
 
       this.turn += 1;
+      this.allUnits().forEach((unit) => this.recalcStats(unit));
       this.queue = this.living()
         .slice()
         .sort((a, b) => b.spd - a.spd || a.name.localeCompare(b.name, "zh"));
       this.queueIndex = 0;
       this.onLog(`第 ${this.turn} 回合`);
+      const attackRampPercent = Math.round(this.getAttackRamp() * 100);
+      if (attackRampPercent > 0) {
+        this.onLog(`战意升温：全员攻击 +${attackRampPercent}%`);
+      }
       this.nextActor();
     }
 
@@ -87,6 +98,10 @@
         if (unit.alive) {
           this.current = unit;
           this.tickBuffs(unit);
+          if (!unit.alive) {
+            if (this.checkEnd()) return;
+            continue;
+          }
           this.tickCooldowns(unit);
           this.onUpdate(this.snapshot());
 
@@ -124,8 +139,17 @@
     tickBuffs(unit) {
       const remain = [];
       unit.buffs.forEach((b) => {
+        if (b.kind === "poison" && unit.alive) {
+          const damage = Math.max(1, Math.round(unit.maxHp * b.value));
+          unit.hp = Math.max(0, unit.hp - damage);
+          this.onLog(`${unit.name} 受到中毒伤害 -${damage}`);
+          if (unit.hp <= 0) {
+            unit.alive = false;
+            this.onLog(`${unit.name} 被中毒击倒`);
+          }
+        }
         b.turnsLeft -= 1;
-        if (b.turnsLeft > 0) remain.push(b);
+        if (b.turnsLeft > 0 && unit.alive) remain.push(b);
         else this.onLog(`${unit.name} 状态结束`);
       });
       unit.buffs = remain;
@@ -139,19 +163,32 @@
         if (b.kind === "atk") atkMul += b.value;
         if (b.kind === "def") defMul += b.value;
       });
-      unit.atk = Math.max(1, Math.round(unit.baseAtk * atkMul));
+      unit.atk = Math.max(1, Math.round(unit.baseAtk * atkMul * (1 + this.getAttackRamp())));
       unit.def = Math.max(0, Math.round(unit.baseDef * defMul));
     }
 
     getValidTargets(actor, skill) {
       if (!actor || !skill) return [];
       if (skill.target === TARGET_TYPES.SELF) return [actor].filter((u) => u.alive);
+      if (skill.target === TARGET_TYPES.ALL_ENEMIES) {
+        return (actor.side === "hero" ? this.monsters : this.heroes).filter((u) => u.alive);
+      }
+      if (skill.target === TARGET_TYPES.ALL_ALLIES) {
+        return (actor.side === "hero" ? this.heroes : this.monsters).filter((u) => u.alive);
+      }
+      if (skill.target === TARGET_TYPES.DEAD_ALLY || skill.target === TARGET_TYPES.ALL_DEAD_ALLIES) {
+        return (actor.side === "hero" ? this.heroes : this.monsters).filter((u) => !u.alive);
+      }
       if (skill.target === TARGET_TYPES.ALLY) {
         const allies = actor.side === "hero" ? this.heroes : this.monsters;
         return allies.filter((u) => u.alive);
       }
       const enemies = actor.side === "hero" ? this.monsters : this.heroes;
       return enemies.filter((u) => u.alive);
+    }
+
+    requiresTargetSelection(skill) {
+      return skill && (skill.target === TARGET_TYPES.ENEMY || skill.target === TARGET_TYPES.ALLY);
     }
 
     canUseSkill(actor, skill) {
@@ -168,7 +205,7 @@
       this.pendingSkill = skill;
       const targets = this.getValidTargets(this.current, skill);
 
-      if (skill.target === TARGET_TYPES.SELF || targets.length === 1) {
+      if (!this.requiresTargetSelection(skill) || targets.length === 1) {
         this.resolveAction(this.current, skill, targets[0]);
         return true;
       }
@@ -196,6 +233,36 @@
       this.phase = PHASE.PLAYER_SELECT_SKILL;
       this.onLog("取消了，再选技能");
       this.onUpdate(this.snapshot());
+    }
+
+    dealDamage(actor, target, power) {
+      const dodge = (target.buffs || []).find((effect) => effect.kind === "dodge" && effect.turnsLeft > 0);
+      if (dodge && Math.random() < dodge.value) {
+        target.buffs = target.buffs.filter((effect) => effect !== dodge);
+        return { amount: 0, crit: false, dodged: true, defeated: false };
+      }
+
+      const raw = actor.atk * power;
+      const mitigated = Math.max(8, Math.round(raw - target.def * 0.55));
+      const variance = Math.round(mitigated * (0.92 + Math.random() * 0.16));
+      const critChance = Math.min(0.42, 0.12 + Math.max(0, power - 1) * 0.16);
+      const crit = Math.random() < critChance;
+      const amount = Math.max(1, Math.round(variance * (crit ? 1.55 : 1)));
+      target.hp = Math.max(0, target.hp - amount);
+      const defeated = target.hp <= 0;
+      if (defeated) {
+        target.alive = false;
+        target.hp = 0;
+      }
+      return { amount, crit, dodged: false, defeated };
+    }
+
+    reviveUnit(target, ratio) {
+      target.alive = true;
+      target.hp = Math.max(1, Math.round(target.maxHp * ratio));
+      target.buffs = [];
+      this.recalcStats(target);
+      return target.hp;
     }
 
     resolveAction(actor, skill, target) {
@@ -230,6 +297,88 @@
         skillName: skill.name || "",
         message: "",
       };
+
+      const damageTypes = [SKILL_TYPES.DAMAGE, SKILL_TYPES.DAMAGE_ALL, SKILL_TYPES.MULTI_HIT, SKILL_TYPES.LIFESTEAL];
+      if (damageTypes.includes(skill.type)) {
+        const targets = skill.target === TARGET_TYPES.ALL_ENEMIES ? this.getValidTargets(actor, skill) : [target];
+        const hits = skill.type === SKILL_TYPES.MULTI_HIT ? skill.hits || 3 : 1;
+        const outcomes = [];
+        targets.forEach((victim) => {
+          for (let hit = 0; hit < hits && victim.alive; hit += 1) {
+            outcomes.push({ target: victim, ...this.dealDamage(actor, victim, skill.power) });
+          }
+        });
+        const total = outcomes.reduce((sum, outcome) => sum + outcome.amount, 0);
+        const dodges = outcomes.filter((outcome) => outcome.dodged).length;
+        const defeated = outcomes.filter((outcome) => outcome.defeated).map((outcome) => outcome.target.name);
+        fx.targetUid = targets[0] ? targets[0].uid : target.uid;
+        fx.amount = total;
+        fx.crit = outcomes.some((outcome) => outcome.crit);
+        fx.targets = targets.map((unit) => unit.uid);
+        fx.targetAmounts = outcomes.reduce((amounts, outcome) => {
+          amounts[outcome.target.uid] = (amounts[outcome.target.uid] || 0) + outcome.amount;
+          return amounts;
+        }, {});
+        fx.hits = hits;
+        fx.message = `${actor.name} 使用 ${skill.name}，造成 ${total} 点伤害`;
+        if (dodges) fx.message += `，${dodges} 次被闪避`;
+        if (defeated.length) fx.message += `，${defeated.join("、")} 倒下`;
+        if (skill.type === SKILL_TYPES.LIFESTEAL) {
+          const heal = Math.min(actor.maxHp - actor.hp, Math.round(total * (skill.lifeSteal || 0.4)));
+          actor.hp += heal;
+          fx.healAmount = heal;
+          fx.message += `，吸血 +${heal}`;
+        }
+        return fx;
+      }
+
+      if (skill.type === SKILL_TYPES.HEAL_ALL) {
+        const targets = this.getValidTargets(actor, skill);
+        const targetAmounts = {};
+        const total = targets.reduce((sum, unit) => {
+          const before = unit.hp;
+          unit.hp = Math.min(unit.maxHp, unit.hp + Math.round(unit.maxHp * skill.power));
+          const healed = unit.hp - before;
+          targetAmounts[unit.uid] = healed;
+          return sum + healed;
+        }, 0);
+        fx.targetUid = targets[0] ? targets[0].uid : actor.uid;
+        fx.targets = targets.map((unit) => unit.uid);
+        fx.targetAmounts = targetAmounts;
+        fx.amount = total;
+        fx.message = `${actor.name} 使用 ${skill.name}，全体恢复 +${total}`;
+        return fx;
+      }
+
+      if (skill.type === SKILL_TYPES.REVIVE || skill.type === SKILL_TYPES.REVIVE_ALL) {
+        const targets = skill.type === SKILL_TYPES.REVIVE_ALL ? this.getValidTargets(actor, skill) : [target];
+        const revived = targets.map((unit) => ({ unit, hp: this.reviveUnit(unit, skill.power) }));
+        fx.targetUid = revived[0] ? revived[0].unit.uid : actor.uid;
+        fx.targets = revived.map((entry) => entry.unit.uid);
+        fx.targetAmounts = revived.reduce((amounts, entry) => {
+          amounts[entry.unit.uid] = entry.hp;
+          return amounts;
+        }, {});
+        fx.amount = revived.reduce((sum, entry) => sum + entry.hp, 0);
+        fx.message = `${actor.name} 使用 ${skill.name}，复活 ${revived.map((entry) => entry.unit.name).join("、")}`;
+        return fx;
+      }
+
+      if (skill.type === SKILL_TYPES.DODGE) {
+        target.buffs = target.buffs.filter((effect) => effect.kind !== "dodge");
+        target.buffs.push({ kind: "dodge", value: skill.power, turnsLeft: skill.duration || 2, label: "闪避" });
+        fx.amount = Math.round(skill.power * 100);
+        fx.message = `${actor.name} 使用 ${skill.name}，获得闪避`;
+        return fx;
+      }
+
+      if (skill.type === SKILL_TYPES.POISON) {
+        target.buffs = target.buffs.filter((effect) => effect.kind !== "poison");
+        target.buffs.push({ kind: "poison", value: skill.power, turnsLeft: skill.duration || 3, label: "中毒" });
+        fx.amount = Math.round(target.maxHp * skill.power);
+        fx.message = `${actor.name} 使用 ${skill.name}，${target.name} 陷入中毒`;
+        return fx;
+      }
 
       if (skill.type === SKILL_TYPES.DAMAGE) {
         const raw = actor.atk * skill.power;
@@ -383,8 +532,12 @@
       const selfHpRatio = actor.hp / actor.maxHp;
       const allies = this.living(actor.side);
       const weakestAlly = allies.slice().sort((a, b) => a.hp / a.maxHp - b.hp / b.maxHp)[0];
+      const deadAllies = (actor.side === "hero" ? this.heroes : this.monsters).filter((unit) => !unit.alive);
 
-      const heals = usable.filter((s) => s.type === SKILL_TYPES.HEAL);
+      const revives = usable.filter((skill) => skill.type === SKILL_TYPES.REVIVE || skill.type === SKILL_TYPES.REVIVE_ALL);
+      if (revives.length && deadAllies.length) return revives[0];
+
+      const heals = usable.filter((s) => s.type === SKILL_TYPES.HEAL || s.type === SKILL_TYPES.HEAL_ALL);
       if (heals.length && weakestAlly && weakestAlly.hp / weakestAlly.maxHp < 0.45) {
         return heals[0];
       }
@@ -400,8 +553,11 @@
       const buffs = usable.filter((s) => s.type === SKILL_TYPES.BUFF_ATK);
       if (buffs.length && Math.random() < 0.3) return buffs[0];
 
+      const dodges = usable.filter((s) => s.type === SKILL_TYPES.DODGE);
+      if (dodges.length && selfHpRatio < 0.55 && Math.random() < 0.45) return dodges[0];
+
       const damages = usable
-        .filter((s) => s.type === SKILL_TYPES.DAMAGE)
+        .filter((s) => [SKILL_TYPES.DAMAGE, SKILL_TYPES.DAMAGE_ALL, SKILL_TYPES.MULTI_HIT, SKILL_TYPES.LIFESTEAL, SKILL_TYPES.POISON].includes(s.type))
         .sort((a, b) => b.power - a.power);
       if (damages.length) {
         // 优先用高伤技能，偶尔用普攻
@@ -416,7 +572,7 @@
       if (!targets.length) return null;
       if (skill.target === TARGET_TYPES.SELF) return actor;
 
-      if (skill.type === SKILL_TYPES.HEAL || skill.type === SKILL_TYPES.BUFF_ATK) {
+      if ([SKILL_TYPES.HEAL, SKILL_TYPES.HEAL_ALL, SKILL_TYPES.BUFF_ATK, SKILL_TYPES.DODGE, SKILL_TYPES.REVIVE, SKILL_TYPES.REVIVE_ALL].includes(skill.type)) {
         return targets.slice().sort((a, b) => a.hp / a.maxHp - b.hp / b.maxHp)[0];
       }
 
@@ -447,6 +603,40 @@
       return true;
     }
 
+    getUpcomingTurns(limit = 4) {
+      if (!this.current || limit <= 0) return [];
+
+      const upcoming = [];
+      let projectedTurn = this.turn;
+      const appendLiving = (units) => {
+        units.forEach((unit) => {
+          if (unit.alive && upcoming.length < limit) {
+            upcoming.push({
+              uid: unit.uid,
+              name: unit.name,
+              side: unit.side,
+              image: unit.image,
+              color: unit.color,
+              turn: projectedTurn,
+            });
+          }
+        });
+      };
+
+      appendLiving(this.queue.slice(this.queueIndex));
+      const roundOrder = () =>
+        this.living()
+          .slice()
+          .sort((a, b) => b.spd - a.spd || a.name.localeCompare(b.name, "zh"));
+
+      while (upcoming.length < limit && this.living().length) {
+        projectedTurn += 1;
+        appendLiving(roundOrder());
+      }
+
+      return upcoming;
+    }
+
     snapshot() {
       return {
         phase: this.phase,
@@ -457,6 +647,8 @@
         monsters: this.monsters,
         winner: this.winner,
         autoBattle: this.autoBattle,
+        attackRampPercent: Math.round(this.getAttackRamp() * 100),
+        upcomingTurns: this.getUpcomingTurns(),
         validTargetUids:
           this.phase === PHASE.PLAYER_SELECT_TARGET && this.current && this.pendingSkill
             ? this.getValidTargets(this.current, this.pendingSkill).map((u) => u.uid)

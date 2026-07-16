@@ -108,6 +108,8 @@
     hit: ["#ff6b7a", "#ffd166", "#ffffff", "#ff9aa5"],
     crit: ["#fff7c2", "#ff5d6c", "#63d2ff", "#ffffff", "#ffd166"],
     heal: ["#3ddc97", "#86efac", "#d7ffe8", "#ffffff"],
+    poison: ["#a855f7", "#d8b4fe", "#7e22ce", "#f3e8ff"],
+    revive: ["#fff4c2", "#86efac", "#63d2ff", "#ffffff"],
     buff: ["#2f9bff", "#63d2ff", "#9ad7ff", "#ffffff"],
     debuff: ["#ffd166", "#f59e0b", "#ff9f43", "#ffffff"],
     ko: ["#ff5d6c", "#ffffff", "#ffd166", "#7c4dff"],
@@ -434,8 +436,68 @@
       setTimeout(() => node.remove(), 1100);
     }
 
-    showCombo(value) {
+    pickTalkLine(lines) {
+      return lines[Math.floor(Math.random() * lines.length)];
+    }
+
+    getTalkLine(skillType, role, { crit = false, ko = false } = {}) {
+      const actorLines = {
+        damage_all: ["全部接招！", "光线覆盖全场！"],
+        multi_hit: ["连招开始！", "别想躲开！"],
+        lifesteal: ["能量归我了！", "借点生命力！"],
+        poison: ["毒雾扩散！", "慢慢感受吧！"],
+        heal_all: ["全员补给！", "治愈之光展开！"],
+        revive: ["站起来，继续战斗！", "复苏吧！"],
+        revive_all: ["全员归队！", "把大家带回来！"],
+        dodge: ["抓不住我！", "闪开这一击！"],
+        damage: crit ? ["认真起来连我都怕！", "这一下有点重！"] : ["看我的！", "别眨眼！", "光线走你！", "接招吧！"],
+        heal: ["别慌，奶一口！", "急救光线到！"],
+        buff_atk: ["状态拉满！", "能量上线！"],
+        debuff_def: ["先给你降降温！", "防御借我一下！"],
+      };
+      const targetLines = {
+        damage_all: ["全都被打中了！", "这范围也太大了！"],
+        multi_hit: ["还没结束吗？", "连续命中！"],
+        lifesteal: ["生命被吸走了！", "别抢我的能量！"],
+        poison: ["这毒雾不对劲！", "中毒了！"],
+        heal_all: ["大家都恢复了！", "全队状态回来了！"],
+        revive: ["我又回来了！", "还能继续！"],
+        revive_all: ["我们全都复苏了！", "重新集结！"],
+        dodge: ["差一点！", "躲过去了！"],
+        damage: ko ? ["我先躺会儿…", "暂停一下！"] : crit ? ["这也太狠了！", "我裂开了！"] : ["哎呀！", "我的护甲！", "先记账！", "别打脸！"],
+        heal: ["满电复活！", "舒服了！"],
+        buff_atk: ["感觉变强了！", "能量到账！"],
+        debuff_def: ["这状态不对！", "我被削弱了！"],
+      };
+      const pool = (role === "actor" ? actorLines : targetLines)[skillType] || ["嗯？"];
+      return this.pickTalkLine(pool);
+    }
+
+    showTalkBubble(uid, text, role = "actor") {
+      if (!this.floatLayer || !uid || !text) return;
+      const rect = this.getAnchorRect(uid);
+      if (!rect) return;
+      while (this.floatLayer.childElementCount >= MAX_FLOATS) {
+        this.floatLayer.firstElementChild.remove();
+      }
+      const node = document.createElement("div");
+      node.className = `fx-talk-bubble ${role}`;
+      node.textContent = text;
+      node.style.left = `${rect.left + rect.width * 0.5}px`;
+      node.style.top = `${rect.top + 10}px`;
+      this.floatLayer.appendChild(node);
+      setTimeout(() => node.remove(), 1450);
+    }
+
+    showCombo(value, anchor = null) {
       if (!this.comboHud || !this.comboValueEl) return;
+      if (anchor) {
+        const x = Math.max(62, Math.min(window.innerWidth - 62, anchor.x));
+        const y = Math.max(76, anchor.y - 54);
+        this.comboHud.style.left = `${x}px`;
+        this.comboHud.style.top = `${y}px`;
+        this.comboHud.style.right = "auto";
+      }
       this.comboHud.hidden = false;
       this.comboHud.classList.remove("pop");
       void this.comboHud.offsetWidth;
@@ -603,7 +665,6 @@
       this.combo += 1;
       this.hitStreak += 1;
       this.comboTimer = this.comboMaxWindow;
-      this.showCombo(this.combo);
       if (this.combo >= 2) {
         this.sfx("combo", 0.8 + Math.min(1.2, this.combo * 0.08));
       }
@@ -804,8 +865,147 @@
       }
       layer.appendChild(trail);
       this.trackTrailNode(trail, duration + 220);
-      this.spawnPathParticles(start, to, Math.round(14 * power), kind === "debuff" ? "debuff" : "buff", power, kind);
+      const palette = kind === "poison" ? "poison" : kind === "debuff" ? "debuff" : "buff";
+      this.spawnPathParticles(start, to, Math.round(14 * power), palette, power, kind);
       return trail;
+    }
+
+    getFxTargets(result) {
+      return [...new Set(result.targets && result.targets.length ? result.targets : [result.targetUid])].filter(Boolean);
+    }
+
+    getTargetAmount(result, uid, fallback = 0) {
+      return result.targetAmounts && Number.isFinite(result.targetAmounts[uid])
+        ? result.targetAmounts[uid]
+        : fallback;
+    }
+
+    playExpandedSkillFx(result, skillType) {
+      const supported = ["damage_all", "multi_hit", "lifesteal", "poison", "heal_all", "revive", "revive_all"];
+      if (!supported.includes(skillType)) return false;
+
+      const targets = this.getFxTargets(result);
+      if (!targets.length) return false;
+
+      const actorPos = this.centerOf(result.actorUid);
+      const actorCard = document.querySelector(
+        `.current-actor-card[data-uid="${result.actorUid}"], .current-actor-card[data-fx-actor="${result.actorUid}"], .fighter-card[data-uid="${result.actorUid}"]`
+      );
+      const stage = document.getElementById("battle-stage");
+      const isGroup = ["damage_all", "heal_all", "revive_all"].includes(skillType);
+      const targetCount = targets.length;
+
+      this.showTalkBubble(result.actorUid, this.getTalkLine(skillType, "actor"), "actor");
+
+      const targetCard = (uid) => document.querySelector(`.fighter-card[data-uid="${uid}"]`);
+      const showTargetTalk = (uid) => {
+        this.showTalkBubble(uid, this.getTalkLine(skillType, "target"), "target");
+      };
+      const damageTarget = (uid, amount, index, hitNumber = null) => {
+        const pos = this.centerOf(uid);
+        const card = targetCard(uid);
+        if (card) {
+          this.pulseDom(card, result.crit ? "hit-crit" : "hit", 460);
+          this.spawnBurstOn(uid, "impact");
+          this.spawnBurstOn(uid, "shockwave");
+        }
+        if (index === 0 || targetCount === 1) showTargetTalk(uid);
+        const label = hitNumber ? `${hitNumber} HIT  -${amount}` : `-${amount}`;
+        this.showFloatGlobal(label, result.crit ? "crit" : "dmg", pos.x, pos.y, hitNumber ? 1.14 : 1.1);
+        this.trigger(result.crit ? "crit" : "hit", { x: pos.x, y: pos.y, power: 1.05, palette: result.crit ? "crit" : "hit" });
+      };
+      const healTarget = (uid, amount, index, revived = false) => {
+        const pos = this.centerOf(uid);
+        const card = targetCard(uid);
+        if (card) {
+          this.pulseDom(card, revived ? "revive" : "heal", 680);
+          this.spawnBurstOn(uid, revived ? "revive-halo" : "heal-ring");
+          this.spawnBurstOn(uid, "sparkle");
+        }
+        if (index === 0 || targetCount === 1) showTargetTalk(uid);
+        this.showFloatGlobal(revived ? `REVIVE +${amount}` : `+${amount}`, "heal", pos.x, pos.y, revived ? 1.26 : 1.12);
+        this.spawnParticles(pos.x, pos.y, revived ? 34 : 22, revived ? "revive" : "heal", revived ? 1.2 : 1);
+        this.trigger("heal", { x: pos.x, y: pos.y, power: revived ? 1.18 : 1.05, palette: revived ? "revive" : "heal" });
+      };
+
+      if (actorCard) {
+        this.pulseDom(actorCard, skillType === "poison" ? "cast-buff" : skillType.includes("heal") || skillType.includes("revive") ? "cast-heal" : "attack", 480);
+        this.spawnBurstOn(result.actorUid, isGroup ? "group-wave" : skillType === "poison" ? "poison-bubbles" : skillType.includes("revive") ? "revive-halo" : skillType.includes("heal") ? "sparkle" : "beam");
+      }
+      if (isGroup) this.spawnBurstOn(result.actorUid, "group-wave");
+
+      if (skillType === "damage_all") {
+        if (stage) this.pulseDom(stage, "impact", 520);
+        targets.forEach((uid, index) => {
+          const delay = index * 85;
+          setTimeout(() => {
+            this.castBeam(actorPos, this.centerOf(uid), { crit: result.crit, power: 1.1, duration: 145 });
+            setTimeout(() => damageTarget(uid, this.getTargetAmount(result, uid, 0), index), 115);
+          }, delay);
+        });
+        return true;
+      }
+
+      if (skillType === "multi_hit") {
+        const uid = targets[0];
+        const hits = Math.max(2, result.hits || 3);
+        const total = this.getTargetAmount(result, uid, result.amount || 0);
+        for (let hit = 0; hit < hits; hit += 1) {
+          setTimeout(() => {
+            this.castBeam(actorPos, this.centerOf(uid), { crit: result.crit && hit === hits - 1, power: 0.9, duration: 110 });
+            setTimeout(() => damageTarget(uid, Math.max(1, Math.round(total / hits)), 0, hit + 1), 88);
+          }, hit * 120);
+        }
+        return true;
+      }
+
+      if (skillType === "lifesteal") {
+        const uid = targets[0];
+        this.castBeam(actorPos, this.centerOf(uid), { crit: result.crit, power: 1.15, duration: 150 });
+        setTimeout(() => damageTarget(uid, this.getTargetAmount(result, uid, result.amount || 0), 0), 118);
+        if (result.healAmount > 0) {
+          setTimeout(() => {
+            this.castMist(this.centerOf(uid), actorPos, { power: 1.1, duration: 180 });
+            this.spawnBurstOn(result.actorUid, "heal-ring");
+            this.showFloatGlobal(`+${result.healAmount}`, "heal", actorPos.x, actorPos.y, 1.12);
+          }, 210);
+        }
+        return true;
+      }
+
+      if (skillType === "poison") {
+        const uid = targets[0];
+        const pos = this.centerOf(uid);
+        this.castAuraTrail(actorPos, pos, "poison", { power: 1.1, duration: 190 });
+        setTimeout(() => {
+          const card = targetCard(uid);
+          if (card) {
+            this.pulseDom(card, "poisoned", 1000);
+            this.spawnBurstOn(uid, "poison-bubbles");
+          }
+          showTargetTalk(uid);
+          this.showFloatGlobal("中毒", "poison", pos.x, pos.y, 1.2);
+          this.spawnParticles(pos.x, pos.y, 30, "poison", 1.08);
+          this.trigger("debuff", { x: pos.x, y: pos.y, power: 1.05, palette: "poison" });
+        }, 150);
+        return true;
+      }
+
+      const revived = skillType === "revive" || skillType === "revive_all";
+      targets.forEach((uid, index) => {
+        const delay = index * 105;
+        setTimeout(() => {
+          const pos = this.centerOf(uid);
+          if (revived) {
+            this.castMist(actorPos, pos, { power: 1.28, duration: 200 });
+            this.spawnBurstOn(uid, "revive-halo");
+          } else {
+            this.castMist(actorPos, pos, { power: 1.05, duration: 180 });
+          }
+          setTimeout(() => healTarget(uid, this.getTargetAmount(result, uid, 0), index, revived), revived ? 150 : 130);
+        }, delay);
+      });
+      return true;
     }
 
     /**
@@ -862,6 +1062,19 @@
       this.init();
       this.unlockAudio();
 
+      const originalSkillType = result.skillType;
+      if (this.playExpandedSkillFx(result, originalSkillType)) return;
+      const visualSkillType = ["damage_all", "multi_hit", "lifesteal"].includes(originalSkillType)
+        ? "damage"
+        : originalSkillType === "heal_all" || originalSkillType === "revive" || originalSkillType === "revive_all"
+          ? "heal"
+          : originalSkillType === "dodge"
+            ? "buff_atk"
+            : originalSkillType === "poison"
+              ? "debuff_def"
+              : originalSkillType;
+      result = { ...result, skillType: visualSkillType };
+
       const actorCard = result.actorUid
         ? (
             document.querySelector(`.current-actor-card[data-uid="${result.actorUid}"], .current-actor-card[data-fx-actor="${result.actorUid}"]`) ||
@@ -879,6 +1092,12 @@
       const dmgPower = result.skillType === "damage"
         ? Math.min(1.8, 0.85 + (result.amount || 0) / 220) * comboPower * (isCrit ? 1.35 : 1)
         : 1;
+
+      this.showTalkBubble(
+        result.actorUid,
+        this.getTalkLine(originalSkillType, "actor", { crit: isCrit }),
+        "actor"
+      );
 
       // 出手姿态
       if (actorCard) {
@@ -907,6 +1126,12 @@
         const pos = this.centerOf(result.targetUid);
         if (!targetCard && !result.targetUid) return;
 
+        this.showTalkBubble(
+          result.targetUid,
+          this.getTalkLine(originalSkillType, "target", { crit: isCrit, ko: isKo }),
+          "target"
+        );
+
         if (result.skillType === "damage") {
           if (targetCard) {
             this.pulseDom(targetCard, isCrit ? "hit-crit" : "hit", 480);
@@ -923,9 +1148,12 @@
             palette: isCrit ? "crit" : "hit",
           });
           if (isCrit || dmgPower > 1.25) this.hitStopFor(isCrit ? 90 : 50);
-          if (combo >= 3) {
-            this.showFloatGlobal(`${combo} HIT!`, "combo", pos.x, pos.y - 36, 1.1 + Math.min(0.5, combo * 0.05));
-            this.trigger("combo", { x: pos.x, y: pos.y - 20, power: 0.7 + combo * 0.05, palette: "crit" });
+          this.showCombo(combo, pos);
+          if (combo >= 2) {
+            this.spawnBurstOn(result.targetUid, "combo-blast");
+            this.spawnParticles(pos.x, pos.y, 18 + combo * 5, "crit", 0.85 + combo * 0.08);
+            this.trigger("combo", { x: pos.x, y: pos.y - 12, power: 0.75 + combo * 0.07, palette: "crit" });
+            this.flashScreen(Math.min(0.32, 0.1 + combo * 0.035), "255,202,91");
           }
           if (isKo) {
             if (targetCard) this.pulseDom(targetCard, "ko", 800);
@@ -985,6 +1213,17 @@
         }
       } else if (winner === "monster") {
         this.trigger("defeat", { x: cx, y: cy, power: 1.2, palette: "defeat" });
+        for (let i = 0; i < 3; i += 1) {
+          setTimeout(() => {
+            this.spawnParticles(
+              cx + (Math.random() * 180 - 90),
+              cy + (Math.random() * 100 - 50),
+              24,
+              "defeat",
+              0.95
+            );
+          }, 100 + i * 150);
+        }
       } else {
         this.trigger("ko", { x: cx, y: cy, power: 1.1, palette: "ko" });
       }

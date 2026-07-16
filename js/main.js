@@ -16,14 +16,19 @@
   let battle = null;
   /** 一键全自动打怪开关（跨局保持） */
   let autoBattleEnabled = false;
+  let randomizing = false;
+  let randomFinalEffect = false;
 
   function refreshSelect() {
     UI.renderSelectScreen(HERO_ROSTER, selectedIds, {
       onToggle: toggleHero,
+      isRandomizing: randomizing,
+      isRandomFinal: randomFinalEffect,
     });
   }
 
   function toggleHero(id) {
+    if (randomizing) return;
     const idx = selectedIds.indexOf(id);
     if (idx >= 0) {
       selectedIds.splice(idx, 1);
@@ -41,6 +46,7 @@
   }
 
   function clearSelect() {
+    if (randomizing) return;
     selectedIds = [];
     refreshSelect();
   }
@@ -58,18 +64,44 @@
 
   /** 随机挑选 3 名不重复奥特曼，可重复点击刷新阵容 */
   function randomSelect() {
+    if (randomizing) return;
     const pool = HERO_ROSTER.map((h) => h.id);
     if (pool.length < 3) return;
-    selectedIds = shuffle(pool).slice(0, 3);
-    UI.els.phaseBadge.textContent = "随机好了";
-    setTimeout(() => {
-      if (!battle) UI.els.phaseBadge.textContent = "选人";
-    }, 900);
-    refreshSelect();
+
+    const finalIds = shuffle(pool).slice(0, 3);
+    const rollSteps = 10;
+    let step = 0;
+    randomizing = true;
+    randomFinalEffect = false;
+    UI.els.phaseBadge.textContent = "随机中";
+
+    const roll = () => {
+      selectedIds = step < rollSteps ? shuffle(pool).slice(0, 3) : finalIds;
+      refreshSelect();
+
+      if (step < rollSteps) {
+        const delay = 55 + step * 12;
+        step += 1;
+        window.setTimeout(roll, delay);
+        return;
+      }
+
+      randomizing = false;
+      randomFinalEffect = true;
+      UI.els.phaseBadge.textContent = "随机好了";
+      refreshSelect();
+      window.setTimeout(() => {
+        randomFinalEffect = false;
+        refreshSelect();
+        if (!battle) UI.els.phaseBadge.textContent = "选人";
+      }, 900);
+    };
+
+    roll();
   }
 
   function startBattle() {
-    if (selectedIds.length !== 3) return;
+    if (randomizing || selectedIds.length !== 3) return;
 
     const heroes = createHeroTeam(selectedIds);
     const monsters = pickRandomMonsters(3);

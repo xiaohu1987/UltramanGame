@@ -1,0 +1,102 @@
+/* Center-panel forecast for the next actions from the battle queue. */
+#screen-battle .current-actor-card {
+  grid-template-rows: auto minmax(0, 1fr) auto auto auto;
+}
+
+#screen-battle .turn-order {
+  width: min(100%, 460px);
+  min-width: 0;
+  padding: 7px 8px;
+  border: 1px solid rgba(115, 207, 249, 0.36);
+  border-radius: 5px;
+  background: rgba(3, 12, 23, 0.68);
+  box-sizing: border-box;
+}
+
+#screen-battle .turn-order-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 5px;
+  color: #d9f2ff;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+#screen-battle .turn-order-title span {
+  color: #83b9d8;
+  font-size: 0.62rem;
+  font-weight: 700;
+}
+
+#screen-battle .turn-order-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+#screen-battle .turn-order-item {
+  display: grid;
+  grid-template-columns: 16px 28px minmax(0, 1fr);
+  gap: 5px;
+  align-items: center;
+  min-width: 0;
+  padding: 3px 4px;
+  border-left: 2px solid var(--turn-accent, #76d5ff);
+  background: color-mix(in srgb, var(--turn-accent, #76d5ff) 9%, transparent);
+}
+
+#screen-battle .turn-order-index {
+  color: #8aaabc;
+  font-size: 0.64rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+#screen-battle .turn-order-item img {
+  width: 28px;
+  height: 28px;
+  border: 1px solid color-mix(in srgb, var(--turn-accent, #76d5ff) 68%, transparent);
+  background: #05090f;
+  object-fit: contain;
+}
+
+#screen-battle .turn-order-copy {
+  display: grid;
+  min-width: 0;
+  gap: 1px;
+}
+
+#screen-battle .turn-order-copy strong,
+#screen-battle .turn-order-copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#screen-battle .turn-order-copy strong {
+  color: #edf9ff;
+  font-size: 0.67rem;
+  line-height: 1.1;
+}
+
+#screen-battle .turn-order-copy small {
+  color: #94bed5;
+  font-size: 0.58rem;
+  line-height: 1.1;
+}
+
+#screen-battle .turn-order-empty {
+  color: #8caec1;
+  font-size: 0.7rem;
+  text-align: center;
+}
+
+@media (max-width: 520px) {
+  #screen-battle .turn-order-list {
+    grid-template-columns: 1fr;
+  }
+}

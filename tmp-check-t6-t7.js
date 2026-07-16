@@ -4,38 +4,47 @@ const ui = fs.readFileSync("js/ui.js", "utf8");
 const main = fs.readFileSync("js/main.js", "utf8");
 const html = fs.readFileSync("index.html", "utf8");
 const css = fs.readFileSync("css/battle-ui.css", "utf8");
+const layoutCss = fs.readFileSync("css/layout-fit.css", "utf8");
+const fullbodyCss = fs.readFileSync("css/fullbody-fix.css", "utf8");
 const battle = fs.readFileSync("js/battle.js", "utf8");
 const styleCss = fs.readFileSync("css/style.css", "utf8");
 
 const fighterBodyMatch = ui.match(/function renderFighterCard[\s\S]*?(?=\n  \/\*\*|\n  function )/);
 const fighterBody = fighterBodyMatch ? fighterBodyMatch[0] : "";
 
-// In template: fighter-hp-block appears before ${skillBlock}; skillBlock wraps fighter-skills
-const hpIdx = fighterBody.indexOf("fighter-hp-block");
+// The unified card renders a portrait followed by its bottom information band.
+const avatarIdx = fighterBody.indexOf("avatar-frame");
+const infoIdx = fighterBody.indexOf("fighter-info-block");
 const skillBlockUseIdx = fighterBody.indexOf("${skillBlock}");
-const skillBlockDefIdx = fighterBody.indexOf("const skillBlock");
-const skillsInDef = fighterBody.includes("fighter-skills");
 
 const t6 = {
   sameTemplateBothSides:
     ui.includes("state.heroes.map((u) => renderFighterCard") &&
     ui.includes("state.monsters.map((u) => renderFighterCard"),
   leftPortrait:
-    fighterBody.includes("fighter-left") &&
-    fighterBody.includes("avatar-frame") &&
+    avatarIdx > -1 &&
     fighterBody.includes('class="avatar"'),
-  rightHpThenSkills:
-    hpIdx > -1 &&
-    skillBlockUseIdx > -1 &&
-    skillBlockDefIdx > -1 &&
-    skillsInDef &&
-    skillBlockDefIdx < hpIdx &&
-    hpIdx < skillBlockUseIdx,
-  skillsHorizontal:
-    ui.includes("horizontal") &&
+  bottomInfoAfterPortrait:
+    infoIdx > avatarIdx &&
+    fighterBody.includes("fighter-name-chip") &&
+    fighterBody.includes("hp-bar") &&
+    fighterBody.includes("hp-text") &&
+    fighterBody.includes("buff-line"),
+  skillsUseSharedRenderer:
     /renderSkillMiniList\(\s*unit\.skills\s*,\s*true\s*\)/.test(ui),
-  layoutRatio: css.includes("minmax(72px, 1fr) minmax(0, 2fr)"),
-  currentState: fighterBody.includes("isCurrent") && fighterBody.includes(" current"),
+  desktopMinWidths:
+    fullbodyCss.includes("minmax(190px, 0.95fr)") &&
+    fullbodyCss.includes("minmax(320px, 1.6fr)") &&
+    fullbodyCss.includes("minmax(154px, 0.7fr)"),
+  overflowProtection:
+    fullbodyCss.includes("overflow-wrap: anywhere") &&
+    fullbodyCss.includes(".action-bar .skill-buttons") &&
+    fullbodyCss.includes("overflow: auto"),
+  narrowDesktopFallback:
+    layoutCss.includes("@media (max-width: 1100px)") &&
+    layoutCss.includes("grid-template-columns: 1fr") &&
+    layoutCss.includes("overflow: visible"),
+  currentState: fighterBody.includes("const current") && fighterBody.includes('" current"'),
   targetableState: fighterBody.includes("targetable") && fighterBody.includes("isValidTarget"),
   dimmedState: fighterBody.includes("dimmed"),
   cssCurrent: styleCss.includes(".fighter-card.current") || css.includes(".fighter-card.current"),
@@ -56,7 +65,7 @@ const t7 = {
   appendLog: ui.includes("function appendLog"),
   autoScroll: ui.includes("scrollTop = els.battleLog.scrollHeight"),
   logOverflow: /\.battle-log\s*\{[\s\S]*?overflow:\s*auto/.test(css),
-  shortStartLog: main.includes("开战！") && main.includes("自动：开"),
+  shortStartLog: battle.includes('this.onLog("开战！")') && main.includes("自动：开"),
   battleStartLog: battle.includes('this.onLog("开战！")'),
   centerLayout:
     css.includes(".battle-center") &&
@@ -75,7 +84,7 @@ console.log(
       t6Pass: Object.values(t6).every(Boolean),
       t7,
       t7Pass: Object.values(t7).every(Boolean),
-      indices: { hpIdx, skillBlockUseIdx, skillBlockDefIdx },
+      indices: { avatarIdx, infoIdx, skillBlockUseIdx },
     },
     null,
     2

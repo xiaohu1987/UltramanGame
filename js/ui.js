@@ -38,16 +38,35 @@
     resultModal: document.getElementById("result-modal"),
     resultTitle: document.getElementById("result-title"),
     resultDesc: document.getElementById("result-desc"),
+    resultIcon: document.getElementById("result-icon"),
+    resultKicker: document.getElementById("result-kicker"),
     btnRestart: document.getElementById("btn-restart"),
   };
 
   /** 技能类型默认图标 */
   const SKILL_ICON_BY_TYPE = {
     damage: "⚔️",
+    damage_all: "💥",
+    multi_hit: "👊",
+    lifesteal: "🩸",
+    poison: "☠️",
     heal: "💚",
+    heal_all: "✨",
+    revive: "🔆",
+    revive_all: "🌟",
+    dodge: "💨",
     buff_atk: "⚡",
     debuff_def: "🛡️",
   };
+
+  const BATTLE_ARENAS = [
+    { id: "city", name: "城市战区" },
+    { id: "forest", name: "森林战区" },
+    { id: "desert", name: "沙漠战区" },
+    { id: "space", name: "太空战区" },
+    { id: "ocean", name: "海底战区" },
+  ];
+  let lastArenaId = "";
 
   function fx() {
     return window.ArcadeFX || null;
@@ -56,7 +75,15 @@
   function skillTypeLabel(type) {
     const map = {
       damage: "伤害",
+      damage_all: "群攻",
+      multi_hit: "连击",
+      lifesteal: "吸血",
+      poison: "中毒",
       heal: "治疗",
+      heal_all: "群疗",
+      revive: "复活",
+      revive_all: "群复活",
+      dodge: "闪避",
       buff_atk: "增益",
       debuff_def: "减益",
     };
@@ -85,7 +112,15 @@
   function skillTypeClass(type) {
     const map = {
       damage: "type-damage",
+      damage_all: "type-damage",
+      multi_hit: "type-damage",
+      lifesteal: "type-damage",
+      poison: "type-debuff",
       heal: "type-heal",
+      heal_all: "type-heal",
+      revive: "type-heal",
+      revive_all: "type-heal",
+      dodge: "type-buff",
       buff_atk: "type-buff",
       debuff_def: "type-debuff",
     };
@@ -164,7 +199,7 @@
   }
 
   /** 上方 3 个已选大图框 */
-  function renderSelectedSlots(heroes, selectedIds) {
+  function renderSelectedSlots(heroes, selectedIds, options = {}) {
     if (!els.selectedSlots) return;
     const slots = els.selectedSlots.querySelectorAll(".selected-slot");
     slots.forEach((slot, index) => {
@@ -181,13 +216,37 @@
         `;
         return;
       }
-      slot.className = "selected-slot filled";
+      slot.className = `selected-slot filled${options.isRandomizing ? " random-slot" : ""}${
+        options.isRandomFinal ? " random-final-slot" : ""
+      }`;
       slot.style.setProperty("--accent", hero.color);
       slot.innerHTML = `
         <div class="selected-slot-order">${index + 1}</div>
         <div class="selected-slot-body">
-          <img src="${encodeURI(hero.image)}" alt="${hero.name}" class="selected-slot-avatar" loading="lazy" />
-          <div class="selected-slot-name">${hero.name}</div>
+          <div class="selected-slot-stats" aria-label="${hero.name} 的战斗属性">
+            <span>生命 <b>${hero.maxHp}</b></span>
+            <span>攻击 <b>${hero.atk}</b></span>
+            <span>防御 <b>${hero.def}</b></span>
+            <span>速度 <b>${hero.spd}</b></span>
+          </div>
+          <div class="selected-slot-hero">
+            <img src="${encodeURI(hero.image)}" alt="${hero.name}" class="selected-slot-avatar" loading="lazy" />
+            <div class="selected-slot-name">${hero.name}</div>
+          </div>
+          <ul class="selected-slot-skills" aria-label="${hero.name} 的战斗技能">
+            ${hero.skills
+              .map(
+                (skill) => `
+                  <li>
+                    <span class="selected-slot-skill-icon" aria-hidden="true">${skillIcon(skill)}</span>
+                    <span class="selected-slot-skill-copy">
+                      <strong>${skill.name}</strong>
+                      <small>${skill.desc || "暂无说明"}</small>
+                    </span>
+                  </li>`
+              )
+              .join("")}
+          </ul>
         </div>
       `;
     });
@@ -199,13 +258,18 @@
     heroes.forEach((hero) => {
       const selected = selectedIds.includes(hero.id);
       const order = selected ? selectedIds.indexOf(hero.id) + 1 : 0;
+      const selectionLabel = selected ? `已选 ${order}` : selectedIds.length >= 3 ? "队伍已满" : "选择";
       const card = document.createElement("button");
       card.type = "button";
       card.className = `unit-card select-card select-thumb${selected ? " selected" : ""}${
         selectedIds.length >= 3 && !selected ? " locked" : ""
+      }${selected && handlers.isRandomizing ? " random-candidate" : ""}${
+        selected && handlers.isRandomFinal ? " random-final" : ""
       }`;
       card.style.setProperty("--accent", hero.color);
+      card.dataset.heroId = hero.id;
       card.setAttribute("aria-pressed", selected ? "true" : "false");
+      card.disabled = !!handlers.isRandomizing;
       card.title = selected ? `已选 ${order} · 再点取消` : hero.name;
       card.innerHTML = `
         <div class="select-card-glow" aria-hidden="true"></div>
@@ -218,7 +282,7 @@
             <h3>${hero.name}</h3>
           </div>
         </div>
-        <div class="select-flag">${selected ? `已选 ${order}` : "点我"}</div>
+        <div class="select-flag">${selectionLabel}</div>
       `;
       card.addEventListener("click", () => {
         if (fx()) fx().playUi("select", card);
@@ -228,7 +292,7 @@
     });
 
     // 上：3 个大图框
-    renderSelectedSlots(heroes, selectedIds);
+    renderSelectedSlots(heroes, selectedIds, handlers);
 
     // 计数 / 进度 / 状态
     const count = selectedIds.length;
@@ -253,17 +317,32 @@
         .join("");
     }
 
-    els.btnStart.disabled = count !== 3;
+    const isRandomizing = !!handlers.isRandomizing;
+    els.heroGrid.classList.toggle("is-randomizing", isRandomizing);
+    els.heroGrid.setAttribute("aria-busy", isRandomizing ? "true" : "false");
+    els.btnRandom.disabled = isRandomizing;
+    els.btnRandom.classList.toggle("is-randomizing", isRandomizing);
+    els.btnClear.disabled = isRandomizing;
+    els.btnStart.disabled = count !== 3 || isRandomizing;
   }
 
   function showSelect() {
     els.screenSelect.classList.add("active");
     els.screenBattle.classList.remove("active");
     if (els.phaseBadge) els.phaseBadge.textContent = "选人";
-    if (els.resultModal) els.resultModal.hidden = true;
+    if (els.resultModal) {
+      els.resultModal.hidden = true;
+      els.resultModal.className = "modal";
+    }
   }
 
   function showBattle() {
+    const choices = BATTLE_ARENAS.filter((arena) => arena.id !== lastArenaId);
+    const arena = choices[Math.floor(Math.random() * choices.length)];
+    lastArenaId = arena.id;
+    els.screenBattle.dataset.arena = arena.id;
+    els.screenBattle.dataset.arenaName = arena.name;
+    els.screenBattle.setAttribute("aria-label", arena.name);
     els.screenSelect.classList.remove("active");
     els.screenBattle.classList.add("active");
     if (els.phaseBadge) els.phaseBadge.textContent = "战斗";
@@ -286,6 +365,23 @@
     window.setTimeout(() => el.classList.remove(className), ms);
   }
 
+  function getUnitStatus(unit) {
+    const effects = (unit.buffs || []).filter((effect) => effect && effect.turnsLeft > 0);
+    const hasBuff = effects.some((effect) => effect.value > 0 && effect.kind !== "poison");
+    const hasPoison = effects.some((effect) => effect.kind === "poison");
+    const hasDebuff = effects.some((effect) => effect.value < 0 && effect.kind !== "poison");
+    const text = effects
+      .map((effect) => `${effect.label || "状态"} ${effect.turnsLeft}回合`)
+      .join(" · ");
+
+    return {
+      hasBuff,
+      hasDebuff,
+      className: `${hasBuff ? " status-buff" : ""}${hasDebuff ? " status-debuff" : ""}${hasPoison ? " status-poison" : ""}`,
+      text,
+    };
+  }
+
   function renderFighterCard(unit, state) {
     const pct = hpPercent(unit);
     const current = unit.uid === state.currentUid;
@@ -297,13 +393,10 @@
         (state.pendingSkill && state.pendingSkill.target === "ally" && unit.side === "hero") ||
         (state.pendingSkill && state.pendingSkill.target === "self" && unit.uid === state.currentUid));
 
-    const buffParts = [];
-    if (unit.atkBuffTurns > 0) buffParts.push(`攻↑${unit.atkBuffTurns}`);
-    if (unit.defDebuffTurns > 0) buffParts.push(`防↓${unit.defDebuffTurns}`);
-    const buffText = buffParts.join(" · ");
+    const status = getUnitStatus(unit);
 
     const skillBlock = `
-      <div class="fighter-skills" aria-hidden="true">
+      <div class="fighter-skills" aria-label="${unit.name} 的技能">
         ${renderSkillMiniList(unit.skills, true)}
       </div>
     `;
@@ -319,19 +412,24 @@
         tabindex="0"
       >
         <div class="fighter-layout">
-          <div class="avatar-frame">
+          <div class="avatar-frame${status.className}"${status.text ? ` aria-label="${unit.name}：${status.text}"` : ""}>
             <img src="${encodeURI(unit.image)}" alt="${unit.name}" class="avatar" loading="lazy" />
-            <div class="fighter-name-chip">${unit.name}</div>
           </div>
-          <div class="fighter-hp-block">
+          <div class="fighter-info-block">
+            <div class="fighter-name-chip">${unit.name}</div>
+            <div class="fighter-stats" aria-label="战斗属性">
+              <span>攻 <b>${unit.atk}</b></span>
+              <span>防 <b>${unit.def}</b></span>
+              <span>速 <b>${unit.spd}</b></span>
+            </div>
+            ${skillBlock}
             <div class="hp-bar">
               <div class="hp-fill" style="width:${pct}%"></div>
               <div class="hp-glow" style="width:${pct}%"></div>
             </div>
             <div class="hp-text">❤️ ${unit.hp}/${unit.maxHp}</div>
-            <div class="buff-line">${buffText || ""}</div>
+            <div class="buff-line">${status.text}</div>
           </div>
-          ${skillBlock}
         </div>
         <div class="float-layer" data-float="${unit.uid}"></div>
         <div class="fx-layer" data-fx="${unit.uid}" aria-hidden="true"></div>
@@ -385,19 +483,56 @@
       .join("");
   }
 
+  function renderUpcomingTurns(upcomingTurns) {
+    if (!upcomingTurns || !upcomingTurns.length) {
+      return `
+        <section class="turn-order" aria-label="行动预告">
+          <div class="turn-order-title">行动预告</div>
+          <div class="turn-order-empty">本局行动即将结束</div>
+        </section>
+      `;
+    }
+
+    return `
+      <section class="turn-order" aria-label="接下来 4 次行动">
+        <div class="turn-order-title">行动预告 <span>接下来 4 次</span></div>
+        <ol class="turn-order-list">
+          ${upcomingTurns
+            .map(
+              (unit, index) => `
+                <li class="turn-order-item ${unit.side}" style="--turn-accent:${unit.color}">
+                  <span class="turn-order-index">${index + 1}</span>
+                  <img src="${encodeURI(unit.image)}" alt="" aria-hidden="true" loading="lazy" />
+                  <span class="turn-order-copy">
+                    <strong>${unit.name}</strong>
+                    <small>第 ${unit.turn} 回合</small>
+                  </span>
+                </li>
+              `
+            )
+            .join("")}
+        </ol>
+      </section>
+    `;
+  }
+
   /** 中间当前行动大图 */
-  function renderCurrentActor(current) {
+  function renderCurrentActor(current, upcomingTurns) {
     if (!els.currentActor) return;
     if (!current) {
       els.currentActor.innerHTML = `<div class="current-actor-empty">等待出手</div>`;
       return;
     }
     const sideLabel = current.side === "hero" ? "奥特曼" : "怪兽";
+    const status = getUnitStatus(current);
     els.currentActor.innerHTML = `
       <div class="current-actor-card ${current.side}" style="--accent:${current.color}" data-uid="${current.uid}" data-fx-actor="${current.uid}">
         <div class="current-actor-badge">${sideLabel}</div>
-        <img src="${encodeURI(current.image)}" alt="${current.name}" class="current-actor-avatar" loading="lazy" />
+        <div class="current-actor-avatar current-actor-avatar-frame${status.className}"${status.text ? ` aria-label="${current.name}：${status.text}"` : ""}>
+          <img src="${encodeURI(current.image)}" alt="${current.name}" class="current-actor-avatar-image" loading="lazy" />
+        </div>
         <div class="current-actor-name">${current.name}</div>
+        ${renderUpcomingTurns(upcomingTurns)}
         <div class="current-actor-hp">❤️ ${current.hp}/${current.maxHp}</div>
         <div class="fx-layer current-actor-fx" data-fx-center="${current.uid}" aria-hidden="true"></div>
       </div>
@@ -413,7 +548,7 @@
     renderMonsterIntel(state.monsters, state.currentUid);
 
     const current = [...state.heroes, ...state.monsters].find((u) => u.uid === state.currentUid);
-    renderCurrentActor(current);
+    renderCurrentActor(current, state.upcomingTurns);
 
     if (state.phase === "ended") {
       els.turnBanner.textContent = "打完了";
@@ -423,7 +558,8 @@
       els.btnCancelTarget.hidden = true;
     } else if (current) {
       const sideLabel = current.side === "hero" ? "你" : "怪兽";
-      els.turnBanner.textContent = `第 ${state.turn} 回合 · ${sideLabel}`;
+      const attackRampText = state.attackRampPercent > 0 ? ` · 战意+${state.attackRampPercent}%` : "";
+      els.turnBanner.textContent = `第 ${state.turn} 回合 · ${sideLabel}${attackRampText}`;
       els.actorInfo.innerHTML = `轮到 <span class="actor-name" style="--accent:${current.color}">${current.name}</span>`;
       pulseClass(els.turnBanner, "banner-pop", 360);
     }
@@ -459,11 +595,17 @@
         btn.type = "button";
         btn.className = `skill-btn ${skillTypeClass(skill.type)}`;
         btn.style.setProperty("--accent", current.color);
-        const usable =
-          skill.currentCd <= 0 &&
-          (skill.target === "self" ||
-            (skill.target === "ally" && state.heroes.some((h) => h.alive)) ||
-            (skill.target === "enemy" && state.monsters.some((m) => m.alive)));
+        const friendlyUnits = state.heroes;
+        const enemyUnits = state.monsters;
+        const usableTargets =
+          skill.target === "self" ||
+          (skill.target === "ally" && friendlyUnits.some((unit) => unit.alive)) ||
+          (skill.target === "enemy" && enemyUnits.some((unit) => unit.alive)) ||
+          (skill.target === "all_enemies" && enemyUnits.some((unit) => unit.alive)) ||
+          (skill.target === "all_allies" && friendlyUnits.some((unit) => unit.alive)) ||
+          (skill.target === "dead_ally" && friendlyUnits.some((unit) => !unit.alive)) ||
+          (skill.target === "all_dead_allies" && friendlyUnits.some((unit) => !unit.alive));
+        const usable = skill.currentCd <= 0 && usableTargets;
         btn.disabled = !usable;
         btn.innerHTML = `
           <span class="skill-head">
@@ -471,6 +613,7 @@
             <span class="skill-name">${skill.name}</span>
           </span>
           <span class="skill-meta">${skill.currentCd > 0 ? `等 ${skill.currentCd}` : "可用"}</span>
+          <span class="skill-desc">${skill.desc || "暂无说明"}</span>
         `;
         btn.addEventListener("click", () => {
           if (fx()) fx().playUi("click", btn);
@@ -545,10 +688,37 @@
     else if (kind === "cast" && engine.playCast) engine.playCast(payload);
   }
 
-  function showResult(title, desc) {
+  function showResult(winner) {
     if (!els.resultModal) return;
-    els.resultTitle.textContent = title;
-    els.resultDesc.textContent = desc;
+    const results = {
+      hero: {
+        className: "victory",
+        icon: "🏆",
+        kicker: "VICTORY",
+        title: "光之战士胜利！",
+        desc: "怪兽军团已经撤退，下一场也拜托你了！",
+      },
+      monster: {
+        className: "defeat",
+        icon: "⚠",
+        kicker: "DEFEAT",
+        title: "怪兽占了上风",
+        desc: "这次先调整战术，再来一场漂亮的反击！",
+      },
+      draw: {
+        className: "draw",
+        icon: "✦",
+        kicker: "DRAW",
+        title: "势均力敌",
+        desc: "双方同时耗尽能量，下次再分高下！",
+      },
+    };
+    const result = results[winner] || results.draw;
+    els.resultModal.className = `modal show result-${result.className}`;
+    els.resultTitle.textContent = result.title;
+    els.resultDesc.textContent = result.desc;
+    if (els.resultIcon) els.resultIcon.textContent = result.icon;
+    if (els.resultKicker) els.resultKicker.textContent = result.kicker;
     els.resultModal.hidden = false;
   }
 

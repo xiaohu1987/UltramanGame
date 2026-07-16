@@ -538,3 +538,23 @@ body {
     height: min(130px, 58%);
   }
 }
+
+/* 战斗主区固定为三栏：我方阵容、中央舞台、敌方阵容。 */
+@media (min-width: 1101px) {
+  #screen-battle .battle-field,
+  #screen-battle .battle-field.four-columns,
+  #screen-battle .battle-field.vertical-stack {
+    grid-template-columns: minmax(300px, 1fr) minmax(320px, 1.1fr) minmax(300px, 1fr);
+    gap: 12px;
+  }
+
+  #screen-battle .action-bar {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  #screen-battle .team-column,
+  #screen-battle .battle-center {
+    grid-row: 1;
+  }
+}

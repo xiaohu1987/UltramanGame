@@ -10,7 +10,15 @@
 
 const SKILL_TYPES = {
   DAMAGE: "damage",
+  DAMAGE_ALL: "damage_all",
+  MULTI_HIT: "multi_hit",
+  LIFESTEAL: "lifesteal",
+  POISON: "poison",
   HEAL: "heal",
+  HEAL_ALL: "heal_all",
+  REVIVE: "revive",
+  REVIVE_ALL: "revive_all",
+  DODGE: "dodge",
   BUFF_ATK: "buff_atk",
   DEBUFF_DEF: "debuff_def",
 };
@@ -19,6 +27,10 @@ const TARGET_TYPES = {
   ENEMY: "enemy",
   ALLY: "ally",
   SELF: "self",
+  ALL_ENEMIES: "all_enemies",
+  ALL_ALLIES: "all_allies",
+  DEAD_ALLY: "dead_ally",
+  ALL_DEAD_ALLIES: "all_dead_allies",
 };
 
 /** @type {Array<Object>} */
@@ -278,9 +290,214 @@ const HERO_ROSTER = [
       { id: "armor_break", name: "破甲连击", type: SKILL_TYPES.DEBUFF_DEF, target: TARGET_TYPES.ENEMY, power: 0.38, cooldown: 3, duration: 2, desc: "降低敌方防御" },
     ],
   },
+  {
+    id: "ultra_ace",
+    name: "艾斯奥特曼",
+    title: "光线王牌",
+    side: "hero",
+    maxHp: 1130,
+    atk: 154,
+    def: 43,
+    spd: 92,
+    color: "#ef5350",
+    image: "assets/ultraman_heroes/ULTRAMAN ACE.jpg",
+    skills: [
+      { id: "metalium_fist", name: "梅塔利姆拳", type: SKILL_TYPES.DAMAGE, target: TARGET_TYPES.ENEMY, power: 1, cooldown: 0, desc: "基础近战攻击" },
+      { id: "metalium_ray", name: "梅塔利姆光线", type: SKILL_TYPES.DAMAGE, target: TARGET_TYPES.ENEMY, power: 1.76, cooldown: 2, desc: "招牌必杀光线" },
+      { id: "guillotine", name: "断头刀", type: SKILL_TYPES.DEBUFF_DEF, target: TARGET_TYPES.ENEMY, power: 0.38, cooldown: 3, duration: 2, desc: "削弱目标防御" },
+    ],
+  },
+  {
+    id: "ultra_ginga",
+    name: "银河奥特曼",
+    title: "未来之星",
+    side: "hero",
+    maxHp: 1110,
+    atk: 149,
+    def: 41,
+    spd: 99,
+    color: "#7e57c2",
+    image: "assets/ultraman_heroes/ULTRAMAN GINGA.jpg",
+    skills: [
+      { id: "ginga_punch", name: "银河拳", type: SKILL_TYPES.DAMAGE, target: TARGET_TYPES.ENEMY, power: 1, cooldown: 0, desc: "基础光能打击" },
+      { id: "cross_shoot", name: "银河十字光线", type: SKILL_TYPES.DAMAGE, target: TARGET_TYPES.ENEMY, power: 1.7, cooldown: 2, desc: "贯穿型强力光线" },
+      { id: "star_barrier", name: "星光屏障", type: SKILL_TYPES.HEAL, target: TARGET_TYPES.SELF, power: 0.46, cooldown: 3, desc: "恢复自身生命" },
+    ],
+  },
+  {
+    id: "ultra_nexus",
+    name: "奈克瑟斯奥特曼",
+    title: "羁绊之光",
+    side: "hero",
+    maxHp: 1060,
+    atk: 158,
+    def: 37,
+    spd: 103,
+    color: "#ffb74d",
+    image: "assets/ultraman_heroes/ULTRAMAN NEXUS.jpg",
+    skills: [
+      { id: "nexus_elbow", name: "肘击", type: SKILL_TYPES.DAMAGE, target: TARGET_TYPES.ENEMY, power: 1, cooldown: 0, desc: "快速近身打击" },
+      { id: "cross_ray", name: "十字风暴", type: SKILL_TYPES.DAMAGE, target: TARGET_TYPES.ENEMY, power: 1.82, cooldown: 3, desc: "高伤害终结光线" },
+      { id: "meta_field", name: "美塔领域", type: SKILL_TYPES.BUFF_ATK, target: TARGET_TYPES.SELF, power: 0.34, cooldown: 3, duration: 2, desc: "提升自身攻击" },
+    ],
+  },
+  {
+    id: "ultra_blazar",
+    name: "布莱泽奥特曼",
+    title: "野性战士",
+    side: "hero",
+    maxHp: 1170,
+    atk: 153,
+    def: 45,
+    spd: 94,
+    color: "#26a69a",
+    image: "assets/ultraman_heroes/ULTRAMAN BLAZAR.jpg",
+    skills: [
+      { id: "blazar_claw", name: "布莱泽爪", type: SKILL_TYPES.DAMAGE, target: TARGET_TYPES.ENEMY, power: 1, cooldown: 0, desc: "野性爪击" },
+      { id: "spiral_burrade", name: "螺旋光刃", type: SKILL_TYPES.DAMAGE, target: TARGET_TYPES.ENEMY, power: 1.74, cooldown: 2, desc: "投掷旋转光刃" },
+      { id: "wild_roar", name: "野性咆哮", type: SKILL_TYPES.DEBUFF_DEF, target: TARGET_TYPES.ENEMY, power: 0.34, cooldown: 3, duration: 2, desc: "压制目标防御" },
+    ],
+  },
+  {
+    id: "ultra_arc",
+    name: "亚刻奥特曼",
+    title: "想象之光",
+    side: "hero",
+    maxHp: 1100,
+    atk: 151,
+    def: 40,
+    spd: 101,
+    color: "#00acc1",
+    image: "assets/ultraman_heroes/ULTRAMAN ARC.jpg",
+    skills: [
+      { id: "arc_punch", name: "亚刻拳", type: SKILL_TYPES.DAMAGE, target: TARGET_TYPES.ENEMY, power: 1, cooldown: 0, desc: "基础格斗攻击" },
+      { id: "arc_final", name: "亚刻终结光线", type: SKILL_TYPES.DAMAGE, target: TARGET_TYPES.ENEMY, power: 1.78, cooldown: 2, desc: "想象力凝聚光线" },
+      { id: "imagination", name: "想象增幅", type: SKILL_TYPES.BUFF_ATK, target: TARGET_TYPES.ALLY, power: 0.3, cooldown: 3, duration: 2, desc: "提升一名队友攻击" },
+    ],
+  },
+  {
+    id: "ultra_father",
+    name: "奥特之父",
+    title: "宇宙警备队大队长",
+    side: "hero",
+    maxHp: 1300,
+    atk: 148,
+    def: 58,
+    spd: 76,
+    color: "#d6a236",
+    image: "assets/ultraman_heroes/FATHER OF ULTRA.png",
+    skills: [
+      { id: "father_punch", name: "父亲之拳", type: SKILL_TYPES.DAMAGE, target: TARGET_TYPES.ENEMY, power: 1, cooldown: 0, desc: "沉稳的基础打击" },
+      { id: "father_shot", name: "父亲光线", type: SKILL_TYPES.DAMAGE, target: TARGET_TYPES.ENEMY, power: 1.72, cooldown: 2, desc: "大队长级光线攻击" },
+      { id: "father_guard", name: "警备队守护", type: SKILL_TYPES.HEAL, target: TARGET_TYPES.ALLY, power: 0.52, cooldown: 3, desc: "恢复一名队友生命" },
+    ],
+  },
+  {
+    id: "ultra_mother",
+    name: "奥特之母",
+    title: "银十字军队长",
+    side: "hero",
+    maxHp: 1190,
+    atk: 122,
+    def: 52,
+    spd: 84,
+    color: "#ec6c9d",
+    image: "assets/ultraman_heroes/MOTHER OF ULTRA.png",
+    skills: [
+      { id: "mother_light", name: "母亲光芒", type: SKILL_TYPES.DAMAGE, target: TARGET_TYPES.ENEMY, power: 1, cooldown: 0, desc: "基础光能攻击" },
+      { id: "mother_heal", name: "玛丽治愈", type: SKILL_TYPES.HEAL, target: TARGET_TYPES.ALLY, power: 0.68, cooldown: 3, desc: "强力恢复队友生命" },
+      { id: "silver_cross", name: "银十字祝福", type: SKILL_TYPES.BUFF_ATK, target: TARGET_TYPES.ALLY, power: 0.28, cooldown: 3, duration: 2, desc: "提升一名队友攻击" },
+    ],
+  },
+  {
+    id: "ultra_blu",
+    name: "布鲁奥特曼",
+    title: "水之战士",
+    side: "hero",
+    maxHp: 1090,
+    atk: 145,
+    def: 42,
+    spd: 98,
+    color: "#3f9dff",
+    image: "assets/ultraman_heroes/ULTRAMAN BLU.jpg",
+    skills: [
+      { id: "aqua_punch", name: "跃水拳", type: SKILL_TYPES.DAMAGE, target: TARGET_TYPES.ENEMY, power: 1, cooldown: 0, desc: "迅捷的水流打击" },
+      { id: "aqua_stream", name: "跃水射线", type: SKILL_TYPES.DAMAGE, target: TARGET_TYPES.ENEMY, power: 1.68, cooldown: 2, desc: "凝聚水能光线" },
+      { id: "aqua_mend", name: "清泉修复", type: SKILL_TYPES.HEAL, target: TARGET_TYPES.SELF, power: 0.45, cooldown: 3, desc: "恢复自身生命" },
+    ],
+  },
+  {
+    id: "ultra_rosso",
+    name: "罗索奥特曼",
+    title: "火之战士",
+    side: "hero",
+    maxHp: 1120,
+    atk: 156,
+    def: 40,
+    spd: 95,
+    color: "#f05b4f",
+    image: "assets/ultraman_heroes/ULTRAMAN ROSSO.jpg",
+    skills: [
+      { id: "flame_punch", name: "烈火拳", type: SKILL_TYPES.DAMAGE, target: TARGET_TYPES.ENEMY, power: 1, cooldown: 0, desc: "燃烧的基础攻击" },
+      { id: "flame_stream", name: "烈火射线", type: SKILL_TYPES.DAMAGE, target: TARGET_TYPES.ENEMY, power: 1.75, cooldown: 2, desc: "高温火焰光线" },
+      { id: "flame_boost", name: "火焰增幅", type: SKILL_TYPES.BUFF_ATK, target: TARGET_TYPES.SELF, power: 0.34, cooldown: 3, duration: 2, desc: "提升自身攻击" },
+    ],
+  },
+  {
+    id: "ultra_x",
+    name: "艾克斯奥特曼",
+    title: "数据之光",
+    side: "hero",
+    maxHp: 1130,
+    atk: 151,
+    def: 43,
+    spd: 97,
+    color: "#39b7e5",
+    image: "assets/ultraman_heroes/ULTRAMAN X.jpg",
+    skills: [
+      { id: "x_slash", name: "艾克斯斩", type: SKILL_TYPES.DAMAGE, target: TARGET_TYPES.ENEMY, power: 1, cooldown: 0, desc: "数据能量斩击" },
+      { id: "xanadium", name: "扎纳帝姆光线", type: SKILL_TYPES.DAMAGE, target: TARGET_TYPES.ENEMY, power: 1.76, cooldown: 2, desc: "高能数据光线" },
+      { id: "cyber_armor", name: "赛博装甲", type: SKILL_TYPES.DEBUFF_DEF, target: TARGET_TYPES.ENEMY, power: 0.35, cooldown: 3, duration: 2, desc: "干扰目标防御" },
+    ],
+  },
 ];
 
 /** @type {Array<Object>} */
+// Each hero keeps its basic attack and signature beam, while the third skill now
+// showcases one of the expanded battle mechanics.
+const HERO_SKILL_UPGRADES = {
+  ultra_tiga: { id: "tiga_light_wave", name: "哉佩利敖光雨", type: SKILL_TYPES.DAMAGE_ALL, target: TARGET_TYPES.ALL_ENEMIES, power: 0.66, cooldown: 4, desc: "光雨攻击所有怪兽" },
+  ultra_original: { id: "original_guard", name: "奥特屏障", type: SKILL_TYPES.DODGE, target: TARGET_TYPES.SELF, power: 0.55, cooldown: 4, duration: 2, desc: "获得闪避，躲开一次攻击" },
+  ultra_seven: { id: "seven_combo", name: "头镖连击", type: SKILL_TYPES.MULTI_HIT, target: TARGET_TYPES.ENEMY, power: 0.56, hits: 3, cooldown: 3, desc: "连续命中同一目标 3 次" },
+  ultra_jack: { id: "jack_sweep", name: "手镯光轮阵", type: SKILL_TYPES.DAMAGE_ALL, target: TARGET_TYPES.ALL_ENEMIES, power: 0.62, cooldown: 4, desc: "光轮横扫所有怪兽" },
+  ultra_zoffy: { id: "zoffy_order", name: "M87 齐射", type: SKILL_TYPES.DAMAGE_ALL, target: TARGET_TYPES.ALL_ENEMIES, power: 0.64, cooldown: 4, desc: "队长级群体光线" },
+  ultra_zero: { id: "zero_rush", name: "赛罗极速连段", type: SKILL_TYPES.MULTI_HIT, target: TARGET_TYPES.ENEMY, power: 0.52, hits: 4, cooldown: 4, desc: "高速四连踢" },
+  ultra_geed: { id: "geed_absorb", name: "融合吸能", type: SKILL_TYPES.LIFESTEAL, target: TARGET_TYPES.ENEMY, power: 1.18, lifeSteal: 0.48, cooldown: 3, desc: "造成伤害并吸收生命" },
+  ultra_z: { id: "z_revive", name: "泽斯蒂姆再起", type: SKILL_TYPES.REVIVE, target: TARGET_TYPES.DEAD_ALLY, power: 0.38, cooldown: 5, desc: "复活一名倒下的队友" },
+  ultra_cosmos: { id: "cosmos_moon", name: "满月群愈", type: SKILL_TYPES.HEAL_ALL, target: TARGET_TYPES.ALL_ALLIES, power: 0.3, cooldown: 4, desc: "为全体队友恢复生命" },
+  ultra_dyna: { id: "dyna_flash", name: "闪亮突袭", type: SKILL_TYPES.MULTI_HIT, target: TARGET_TYPES.ENEMY, power: 0.58, hits: 3, cooldown: 3, desc: "高速三连闪击" },
+  ultra_gaia: { id: "gaia_rebirth", name: "大地复苏", type: SKILL_TYPES.REVIVE_ALL, target: TARGET_TYPES.ALL_DEAD_ALLIES, power: 0.28, cooldown: 6, desc: "复活所有倒下的队友" },
+  ultra_mebius: { id: "mebius_burn", name: "炽热火环", type: SKILL_TYPES.POISON, target: TARGET_TYPES.ENEMY, power: 0.08, cooldown: 3, duration: 3, desc: "施加持续灼烧伤害" },
+  ultra_orb: { id: "orb_hurricane", name: "欧布飓风", type: SKILL_TYPES.DAMAGE_ALL, target: TARGET_TYPES.ALL_ENEMIES, power: 0.65, cooldown: 4, desc: "飓风光线攻击全体" },
+  ultra_taro: { id: "taro_fire", name: "斯特利姆吸收", type: SKILL_TYPES.LIFESTEAL, target: TARGET_TYPES.ENEMY, power: 1.14, lifeSteal: 0.45, cooldown: 3, desc: "吸收敌方能量恢复生命" },
+  ultra_leo: { id: "leo_combo", name: "雷欧飞踢连招", type: SKILL_TYPES.MULTI_HIT, target: TARGET_TYPES.ENEMY, power: 0.6, hits: 3, cooldown: 3, desc: "强力三段飞踢" },
+  ultra_ace: { id: "ace_guillotine", name: "断头刀风暴", type: SKILL_TYPES.DAMAGE_ALL, target: TARGET_TYPES.ALL_ENEMIES, power: 0.64, cooldown: 4, desc: "群体光刃攻击" },
+  ultra_ginga: { id: "ginga_heal", name: "银河星光治愈", type: SKILL_TYPES.HEAL_ALL, target: TARGET_TYPES.ALL_ALLIES, power: 0.28, cooldown: 4, desc: "星光恢复全队生命" },
+  ultra_nexus: { id: "nexus_dodge", name: "美塔领域闪避", type: SKILL_TYPES.DODGE, target: TARGET_TYPES.SELF, power: 0.6, cooldown: 4, duration: 2, desc: "展开领域并闪避攻击" },
+  ultra_blazar: { id: "blazar_bleed", name: "螺旋光刃灼伤", type: SKILL_TYPES.POISON, target: TARGET_TYPES.ENEMY, power: 0.09, cooldown: 3, duration: 3, desc: "令目标持续受到灼伤" },
+  ultra_arc: { id: "arc_imagine", name: "想象力齐射", type: SKILL_TYPES.DAMAGE_ALL, target: TARGET_TYPES.ALL_ENEMIES, power: 0.63, cooldown: 4, desc: "想象光弹攻击所有敌人" },
+  ultra_father: { id: "father_revival", name: "父亲之光复苏", type: SKILL_TYPES.REVIVE, target: TARGET_TYPES.DEAD_ALLY, power: 0.42, cooldown: 5, desc: "复活一名队友并恢复生命" },
+  ultra_mother: { id: "mother_grace", name: "母亲银十字", type: SKILL_TYPES.REVIVE_ALL, target: TARGET_TYPES.ALL_DEAD_ALLIES, power: 0.3, cooldown: 6, desc: "复活所有倒下的队友" },
+  ultra_blu: { id: "blu_tide", name: "跃水群疗", type: SKILL_TYPES.HEAL_ALL, target: TARGET_TYPES.ALL_ALLIES, power: 0.27, cooldown: 4, desc: "水流治愈全体队友" },
+  ultra_rosso: { id: "rosso_burn", name: "烈焰灼烧", type: SKILL_TYPES.POISON, target: TARGET_TYPES.ENEMY, power: 0.1, cooldown: 3, duration: 3, desc: "烈焰持续灼烧目标" },
+  ultra_x: { id: "x_multi", name: "艾克斯数据连斩", type: SKILL_TYPES.MULTI_HIT, target: TARGET_TYPES.ENEMY, power: 0.55, hits: 3, cooldown: 3, desc: "数据之刃三连斩" },
+};
+
+HERO_ROSTER.forEach((hero) => {
+  const upgrade = HERO_SKILL_UPGRADES[hero.id];
+  if (upgrade) hero.skills[2] = upgrade;
+});
+
 const MONSTER_ROSTER = [
   {
     id: "kaiju_gomora",
@@ -487,6 +704,49 @@ const MONSTER_ROSTER = [
     ],
   },
 ];
+
+function createExtraMonster({ id, name, title, hp, atk, def, spd, color, image, attackName, attackPower, special }) {
+  return {
+    id,
+    name,
+    title,
+    side: "monster",
+    maxHp: hp,
+    atk,
+    def,
+    spd,
+    color,
+    image: `assets/ultraman_kaiju/${image}`,
+    skills: [
+      { id: "basic", name: "怪兽重击", type: SKILL_TYPES.DAMAGE, target: TARGET_TYPES.ENEMY, power: 1, cooldown: 0, desc: "基础攻击" },
+      { id: "signature", name: attackName, type: SKILL_TYPES.DAMAGE, target: TARGET_TYPES.ENEMY, power: attackPower, cooldown: 2, desc: "怪兽招牌攻击" },
+      special,
+    ],
+  };
+}
+
+MONSTER_ROSTER.push(
+  createExtraMonster({ id: "kaiju_gomora", name: "哥莫拉", title: "古代怪兽", hp: 1260, atk: 152, def: 50, spd: 78, color: "#8d6e63", image: "GOMORA (1).jpg", attackName: "超振动波", attackPower: 1.68, special: { id: "tail_sweep", name: "尾部横扫", type: SKILL_TYPES.DAMAGE_ALL, target: TARGET_TYPES.ALL_ENEMIES, power: 0.58, cooldown: 4, desc: "攻击所有奥特曼" } }),
+  createExtraMonster({ id: "kaiju_kingjoe", name: "金古桥", title: "宇宙机器人", hp: 1320, atk: 148, def: 60, spd: 72, color: "#90a4ae", image: "KING JOE.jpg", attackName: "佩丹尼姆炮", attackPower: 1.7, special: { id: "barrier", name: "分离闪避", type: SKILL_TYPES.DODGE, target: TARGET_TYPES.SELF, power: 0.55, cooldown: 4, duration: 2, desc: "分离机体躲开攻击" } }),
+  createExtraMonster({ id: "kaiju_bemstar", name: "贝姆斯塔", title: "宇宙大怪兽", hp: 1200, atk: 145, def: 48, spd: 82, color: "#7e8b63", image: "BEMSTAR.png", attackName: "吸能冲击", attackPower: 1.62, special: { id: "energy_drain", name: "能量吞噬", type: SKILL_TYPES.LIFESTEAL, target: TARGET_TYPES.ENEMY, power: 1.12, lifeSteal: 0.45, cooldown: 3, desc: "吸收伤害转化为生命" } }),
+  createExtraMonster({ id: "kaiju_tyrant", name: "泰兰特", title: "暴君怪兽", hp: 1450, atk: 160, def: 55, spd: 68, color: "#6d4c41", image: "TYRANT.jpg", attackName: "流星锤", attackPower: 1.78, special: { id: "tyrant_barrage", name: "暴君乱击", type: SKILL_TYPES.MULTI_HIT, target: TARGET_TYPES.ENEMY, power: 0.5, hits: 4, cooldown: 4, desc: "连续四次重击" } }),
+  createExtraMonster({ id: "kaiju_melba", name: "美尔巴", title: "超古代龙", hp: 1080, atk: 150, def: 38, spd: 108, color: "#8e24aa", image: "MELBA.jpg", attackName: "美尔巴光线", attackPower: 1.64, special: { id: "dark_poison", name: "黑暗毒雾", type: SKILL_TYPES.POISON, target: TARGET_TYPES.ENEMY, power: 0.08, cooldown: 3, duration: 3, desc: "施加持续中毒" } }),
+  createExtraMonster({ id: "kaiju_gomess", name: "哥美斯", title: "古代怪兽", hp: 1180, atk: 146, def: 47, spd: 80, color: "#795548", image: "GOMESS.jpg", attackName: "撕裂爪", attackPower: 1.66, special: { id: "toxic_claw", name: "剧毒爪痕", type: SKILL_TYPES.POISON, target: TARGET_TYPES.ENEMY, power: 0.07, cooldown: 3, duration: 3, desc: "令目标持续中毒" } }),
+  createExtraMonster({ id: "kaiju_doragory", name: "多拉格里", title: "异次元超兽", hp: 1240, atk: 154, def: 46, spd: 86, color: "#ff8f00", image: "DORAGORY.jpg", attackName: "双翼切割", attackPower: 1.7, special: { id: "wing_storm", name: "翼刃风暴", type: SKILL_TYPES.DAMAGE_ALL, target: TARGET_TYPES.ALL_ENEMIES, power: 0.6, cooldown: 4, desc: "翼刃攻击全体" } }),
+  createExtraMonster({ id: "kaiju_birdon", name: "巴顿", title: "火山怪鸟", hp: 1160, atk: 156, def: 42, spd: 96, color: "#e65100", image: "BIRDON.jpg", attackName: "火焰鸟喙", attackPower: 1.68, special: { id: "birdon_fire", name: "火毒羽粉", type: SKILL_TYPES.POISON, target: TARGET_TYPES.ENEMY, power: 0.09, cooldown: 3, duration: 3, desc: "火毒持续灼烧" } }),
+  createExtraMonster({ id: "kaiju_pandon", name: "庞顿", title: "双头怪兽", hp: 1280, atk: 150, def: 52, spd: 74, color: "#bf360c", image: "PANDON.jpg", attackName: "双头火焰", attackPower: 1.72, special: { id: "pandon_combo", name: "双头连喷", type: SKILL_TYPES.MULTI_HIT, target: TARGET_TYPES.ENEMY, power: 0.54, hits: 3, cooldown: 3, desc: "双头三连喷射" } }),
+  createExtraMonster({ id: "kaiju_jumbo_king", name: "詹伯王", title: "合体超兽", hp: 1420, atk: 158, def: 56, spd: 70, color: "#5d4037", image: "JUMBO KING.jpg", attackName: "地狱火焰", attackPower: 1.76, special: { id: "jumbo_absorb", name: "怨念吸收", type: SKILL_TYPES.LIFESTEAL, target: TARGET_TYPES.ENEMY, power: 1.15, lifeSteal: 0.42, cooldown: 3, desc: "造成伤害并恢复生命" } }),
+  createExtraMonster({ id: "kaiju_baraba", name: "巴拉巴", title: "异次元超兽", hp: 1230, atk: 151, def: 49, spd: 84, color: "#6a1b9a", image: "BARABA.jpg", attackName: "镰刀导弹", attackPower: 1.69, special: { id: "baraba_rain", name: "导弹雨", type: SKILL_TYPES.DAMAGE_ALL, target: TARGET_TYPES.ALL_ENEMIES, power: 0.59, cooldown: 4, desc: "导弹覆盖全体敌人" } }),
+  createExtraMonster({ id: "kaiju_antlar", name: "安特拉", title: "磁力怪兽", hp: 1210, atk: 147, def: 53, spd: 76, color: "#a1887f", image: "ANTLAR.jpg", attackName: "磁力钳击", attackPower: 1.67, special: { id: "sand_dodge", name: "沙暴潜行", type: SKILL_TYPES.DODGE, target: TARGET_TYPES.SELF, power: 0.58, cooldown: 4, duration: 2, desc: "潜入沙暴获得闪避" } }),
+  createExtraMonster({ id: "kaiju_kemular", name: "凯姆拉", title: "毒气怪兽", hp: 1090, atk: 143, def: 40, spd: 102, color: "#689f38", image: "KEMULAR.jpg", attackName: "毒气冲撞", attackPower: 1.6, special: { id: "kemular_poison", name: "毒气喷射", type: SKILL_TYPES.POISON, target: TARGET_TYPES.ENEMY, power: 0.1, cooldown: 3, duration: 3, desc: "喷射持续毒气" } }),
+  createExtraMonster({ id: "kaiju_kanegon", name: "卡内贡", title: "硬币怪兽", hp: 1020, atk: 138, def: 44, spd: 98, color: "#f9a825", image: "KANEGON.jpg", attackName: "硬币弹幕", attackPower: 1.58, special: { id: "coin_barrage", name: "硬币乱射", type: SKILL_TYPES.MULTI_HIT, target: TARGET_TYPES.ENEMY, power: 0.5, hits: 3, cooldown: 3, desc: "连续三次硬币攻击" } }),
+  createExtraMonster({ id: "kaiju_nova", name: "诺瓦", title: "暗黑怪兽", hp: 1150, atk: 149, def: 43, spd: 90, color: "#ad1457", image: "NOVA.png", attackName: "黑暗弹", attackPower: 1.65, special: { id: "nova_rebirth", name: "黑暗复苏", type: SKILL_TYPES.REVIVE, target: TARGET_TYPES.DEAD_ALLY, power: 0.34, cooldown: 5, desc: "复活一名倒下的怪兽" } }),
+  createExtraMonster({ id: "kaiju_mururoa", name: "穆鲁罗亚", title: "夜行怪兽", hp: 1190, atk: 148, def: 46, spd: 88, color: "#455a64", image: "MURUROA.jpg", attackName: "黑雾光线", attackPower: 1.65, special: { id: "night_fog", name: "夜雾侵蚀", type: SKILL_TYPES.POISON, target: TARGET_TYPES.ENEMY, power: 0.08, cooldown: 3, duration: 3, desc: "黑雾造成持续伤害" } }),
+  createExtraMonster({ id: "kaiju_pagos", name: "帕戈斯", title: "地底怪兽", hp: 1270, atk: 150, def: 51, spd: 75, color: "#607d8b", image: "PAGOS.jpg", attackName: "放射能光线", attackPower: 1.7, special: { id: "pagos_heal", name: "地底能量恢复", type: SKILL_TYPES.HEAL_ALL, target: TARGET_TYPES.ALL_ALLIES, power: 0.22, cooldown: 4, desc: "恢复所有存活怪兽" } }),
+  createExtraMonster({ id: "kaiju_redking_pair", name: "雷德王夫妇", title: "怪力组合", hp: 1380, atk: 162, def: 50, spd: 73, color: "#d84315", image: "RED KING (MALE) AND RED KING (FEMALE).jpg", attackName: "组合怪力投掷", attackPower: 1.8, special: { id: "pair_rampage", name: "双王乱斗", type: SKILL_TYPES.MULTI_HIT, target: TARGET_TYPES.ENEMY, power: 0.56, hits: 3, cooldown: 3, desc: "怪力三连击" } }),
+  createExtraMonster({ id: "kaiju_seabozu", name: "西博佐", title: "宇宙怪兽", hp: 1160, atk: 144, def: 48, spd: 82, color: "#b0bec5", image: "SEABOZU.jpg", attackName: "白雾冲击", attackPower: 1.62, special: { id: "seabozu_revive", name: "白雾群体复苏", type: SKILL_TYPES.REVIVE_ALL, target: TARGET_TYPES.ALL_DEAD_ALLIES, power: 0.24, cooldown: 6, desc: "复活所有倒下的怪兽" } }),
+  createExtraMonster({ id: "kaiju_verokron", name: "维克隆", title: "导弹超兽", hp: 1290, atk: 153, def: 51, spd: 79, color: "#c62828", image: "VEROKRON.png", attackName: "火箭弹", attackPower: 1.72, special: { id: "verokron_salvo", name: "全弹发射", type: SKILL_TYPES.DAMAGE_ALL, target: TARGET_TYPES.ALL_ENEMIES, power: 0.61, cooldown: 4, desc: "火箭弹攻击全体" } })
+);
 
 /**
  * 深拷贝角色模板为战斗单位
