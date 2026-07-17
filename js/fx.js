@@ -652,6 +652,21 @@
           this.playTone({ freq: 300, dur: 0.16, type: "sawtooth", gain: 0.12 * i, slide: -120 });
           this.playTone({ freq: 180, dur: 0.22, type: "square", gain: 0.1 * i, delay: 0.1, slide: -80 });
           break;
+        case "urgency":
+          this.playTone({ freq: 880, dur: 0.05, type: "square", gain: 0.08 * i, slide: 40 });
+          this.playTone({ freq: 660, dur: 0.06, type: "triangle", gain: 0.07 * i, delay: 0.03, slide: -80 });
+          this.playNoise({ dur: 0.03, gain: 0.04 * i, delay: 0.01 });
+          break;
+        case "math_ok":
+          this.playTone({ freq: 523, dur: 0.07, type: "triangle", gain: 0.1 * i, slide: 120 });
+          this.playTone({ freq: 784, dur: 0.09, type: "sine", gain: 0.09 * i, delay: 0.05, slide: 160 });
+          this.playTone({ freq: 1046, dur: 0.1, type: "triangle", gain: 0.07 * i, delay: 0.1 });
+          break;
+        case "math_fail":
+          this.playNoise({ dur: 0.06, gain: 0.1 * i });
+          this.playTone({ freq: 240, dur: 0.1, type: "sawtooth", gain: 0.12 * i, slide: -120 });
+          this.playTone({ freq: 140, dur: 0.14, type: "square", gain: 0.1 * i, delay: 0.05, slide: -60 });
+          break;
         default:
           this.playTone({ freq: 440, dur: 0.06, type: "triangle", gain: 0.08 * i });
       }

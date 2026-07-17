@@ -65,9 +65,27 @@ body {
   min-height: 0;
   height: 100%;
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr);
+  /* 工具栏 / 紧凑难度条 / 已选大图 / 缩略图 */
+  grid-template-rows: auto auto auto minmax(0, 1fr);
   gap: 8px;
   overflow: hidden;
+}
+
+#screen-select .difficulty-picker--compact {
+  min-height: 0;
+  padding: 5px 10px;
+  gap: 8px 12px;
+}
+
+#screen-select .difficulty-picker--compact .difficulty-option {
+  min-height: 30px;
+  height: 30px;
+  padding: 0 10px;
+  font-size: 0.78rem;
+}
+
+#screen-select .difficulty-picker--compact .difficulty-picker-desc {
+  max-width: min(320px, 36vw);
 }
 
 #screen-select .select-hero-head {

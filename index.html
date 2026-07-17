@@ -6,16 +6,17 @@
   <title>奥特曼打怪兽</title>
   <!-- 小朋友友好：大图少字，选 3 打 3 -->
   <link rel="stylesheet" href="css/style.css" />
-  <link rel="stylesheet" href="css/select-ui.css" />
+  <link rel="stylesheet" href="css/select-ui.css?v=difficulty-popup-1" />
   <link rel="stylesheet" href="css/battle-ui.css" />
   <link rel="stylesheet" href="css/arcade-fx.css?v=skill-fx-18" />
-  <link rel="stylesheet" href="css/layout-fit.css" />
+  <link rel="stylesheet" href="css/layout-fit.css?v=difficulty-popup-1" />
   <link rel="stylesheet" href="css/kids-ui.css" />
   <link rel="stylesheet" href="css/battle-overlay-fix.css" />
   <link rel="stylesheet" href="css/fullbody-fix.css" />
   <link rel="stylesheet" href="css/duel-table.css?v=random-arenas-15" />
   <link rel="stylesheet" href="css/status-avatar-fx.css?v=purple-bubbles-2" />
   <link rel="stylesheet" href="css/turn-order.css?v=1" />
+  <link rel="stylesheet" href="css/math-challenge.css?v=difficulty-popup-1" />
 </head>
 <body>
   <div id="app">
@@ -53,6 +54,19 @@
               <button id="btn-clear" class="btn ghost" type="button">清空</button>
               <button id="btn-start" class="btn primary" type="button" disabled>开战！</button>
             </div>
+          </div>
+        </div>
+
+        <div class="difficulty-picker difficulty-picker--compact" aria-label="战斗难度">
+          <div class="difficulty-picker-head">
+            <span class="difficulty-picker-label">难度</span>
+            <span id="difficulty-desc" class="difficulty-picker-desc">直接出手，和现在一样</span>
+          </div>
+          <div id="difficulty-options" class="difficulty-options" role="radiogroup" aria-label="选择难度">
+            <button type="button" class="difficulty-option is-active" data-difficulty="easy" aria-pressed="true">初级</button>
+            <button type="button" class="difficulty-option" data-difficulty="normal" aria-pressed="false">中级</button>
+            <button type="button" class="difficulty-option" data-difficulty="hard" aria-pressed="false">高级</button>
+            <button type="button" class="difficulty-option" data-difficulty="hell" aria-pressed="false">地狱级</button>
           </div>
         </div>
 
@@ -166,12 +180,44 @@
         <button id="btn-restart" class="btn primary" type="button">再玩一次</button>
       </div>
     </div>
+
+    <!-- 进页难度选择弹窗：每次进入选人页弹出 -->
+    <div id="difficulty-modal" class="difficulty-modal" hidden>
+      <div class="difficulty-modal-backdrop" aria-hidden="true"></div>
+      <div class="difficulty-modal-card" role="dialog" aria-modal="true" aria-labelledby="difficulty-modal-title">
+        <div class="difficulty-modal-glow" aria-hidden="true"></div>
+        <p class="difficulty-modal-kicker">开战难度</p>
+        <h2 id="difficulty-modal-title">选择难度</h2>
+        <p class="difficulty-modal-sub">答对技能更强，答错会失手。可随时在选人页紧凑条再改。</p>
+        <div id="difficulty-modal-options" class="difficulty-modal-options" role="radiogroup" aria-label="选择难度">
+          <button type="button" class="difficulty-modal-option is-active" data-difficulty="easy" aria-pressed="true">
+            <span class="diff-label">初级</span>
+            <span class="diff-desc">直接出手，和现在一样</span>
+          </button>
+          <button type="button" class="difficulty-modal-option" data-difficulty="normal" aria-pressed="false">
+            <span class="diff-label">中级</span>
+            <span class="diff-desc">10 以内加减法，答对 +5%</span>
+          </button>
+          <button type="button" class="difficulty-modal-option" data-difficulty="hard" aria-pressed="false">
+            <span class="diff-label">高级</span>
+            <span class="diff-desc">20 以内加减法，答对 +5%</span>
+          </button>
+          <button type="button" class="difficulty-modal-option" data-difficulty="hell" aria-pressed="false">
+            <span class="diff-label">地狱级</span>
+            <span class="diff-desc">100 以内加减法，答对 +5%</span>
+          </button>
+        </div>
+        <p id="difficulty-modal-hint" class="difficulty-modal-hint">直接出手，和现在一样</p>
+        <button id="btn-difficulty-confirm" class="btn primary difficulty-modal-confirm" type="button">确认难度</button>
+      </div>
+    </div>
   </div>
 
   <script src="js/data.js?v=roster-25-12"></script>
-  <script src="js/battle.js?v=expanded-skills-3"></script>
-  <script src="js/fx.js?v=skill-fx-17"></script>
-  <script src="js/ui.js?v=random-arenas-15"></script>
-  <script src="js/main.js"></script>
+  <script src="js/math-challenge.js?v=difficulty-popup-1"></script>
+  <script src="js/battle.js?v=difficulty-popup-1"></script>
+  <script src="js/fx.js?v=difficulty-popup-1"></script>
+  <script src="js/ui.js?v=difficulty-popup-1"></script>
+  <script src="js/main.js?v=difficulty-popup-1"></script>
 </body>
 </html>

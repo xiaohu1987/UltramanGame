@@ -9,8 +9,8 @@
   position: relative;
   overflow: hidden;
   display: grid;
-  grid-template-rows: auto auto auto;
-  gap: 14px;
+  grid-template-rows: auto auto auto auto;
+  gap: 12px;
   background:
     radial-gradient(900px 320px at 8% -10%, rgba(47, 155, 255, 0.22), transparent 55%),
     radial-gradient(700px 280px at 100% 0%, rgba(124, 77, 255, 0.16), transparent 50%),
@@ -150,6 +150,317 @@
   align-items: center;
   gap: 8px;
   flex: 0 0 auto;
+}
+
+/* 难度选择：开战前四档 */
+.difficulty-picker {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(99, 210, 255, 0.18);
+  background:
+    radial-gradient(circle at 8% 20%, rgba(47, 155, 255, 0.16), transparent 55%),
+    rgba(8, 18, 32, 0.42);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+}
+
+/* 紧凑难度条：单行、低高度，不挤压角色大图 */
+.difficulty-picker--compact {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 14px;
+  flex-wrap: wrap;
+  padding: 6px 10px;
+  min-height: 0;
+}
+
+.difficulty-picker--compact .difficulty-picker-head {
+  flex: 1 1 auto;
+  min-width: 120px;
+  align-items: center;
+  gap: 8px;
+}
+
+.difficulty-picker--compact .difficulty-picker-label {
+  font-size: 0.76rem;
+}
+
+.difficulty-picker--compact .difficulty-picker-desc {
+  font-size: 0.74rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: min(360px, 42vw);
+}
+
+.difficulty-picker--compact .difficulty-options {
+  flex: 0 1 auto;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+  grid-template-columns: none;
+}
+
+.difficulty-picker--compact .difficulty-option {
+  min-height: 32px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.difficulty-picker-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.difficulty-picker-label {
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: #9ad7ff;
+}
+
+.difficulty-picker-desc {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.difficulty-options {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.difficulty-option {
+  min-height: 40px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(120, 190, 255, 0.18);
+  background: rgba(8, 18, 32, 0.55);
+  color: #d7ecff;
+  font-size: 0.9rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.difficulty-option:hover {
+  border-color: rgba(99, 210, 255, 0.55);
+  transform: translateY(-1px);
+}
+
+.difficulty-option.is-active {
+  border-color: color-mix(in srgb, var(--primary-2, #63d2ff) 70%, white 10%);
+  color: #eaf7ff;
+  background:
+    radial-gradient(circle at 20% 30%, rgba(47, 155, 255, 0.28), transparent 60%),
+    rgba(12, 28, 48, 0.88);
+  box-shadow:
+    0 0 0 1px rgba(99, 210, 255, 0.22),
+    0 8px 18px rgba(47, 155, 255, 0.16);
+}
+
+.difficulty-option[data-difficulty="hell"].is-active {
+  border-color: rgba(255, 93, 108, 0.72);
+  background:
+    radial-gradient(circle at 20% 30%, rgba(255, 93, 108, 0.28), transparent 60%),
+    rgba(36, 14, 22, 0.9);
+  box-shadow:
+    0 0 0 1px rgba(255, 93, 108, 0.22),
+    0 8px 18px rgba(255, 93, 108, 0.16);
+}
+
+@media (max-width: 720px) {
+  .difficulty-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ===== 进页难度弹窗（模态，不占选人布局流） ===== */
+.difficulty-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+}
+
+.difficulty-modal[hidden] {
+  display: none !important;
+}
+
+.difficulty-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 50% 28%, rgba(47, 155, 255, 0.18), transparent 50%),
+    rgba(2, 8, 16, 0.78);
+  backdrop-filter: blur(6px);
+}
+
+.difficulty-modal-card {
+  position: relative;
+  z-index: 1;
+  width: min(520px, 100%);
+  padding: 22px 20px 18px;
+  border-radius: 20px;
+  border: 1px solid color-mix(in srgb, var(--primary-2, #63d2ff) 42%, rgba(255, 255, 255, 0.12));
+  background:
+    radial-gradient(circle at 50% 0%, rgba(99, 210, 255, 0.2), transparent 48%),
+    linear-gradient(180deg, rgba(16, 32, 54, 0.98), rgba(8, 16, 28, 0.98));
+  box-shadow:
+    0 0 0 1px rgba(99, 210, 255, 0.12),
+    0 22px 48px rgba(0, 0, 0, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  text-align: center;
+  overflow: hidden;
+  animation: difficulty-modal-pop 0.22s ease-out;
+}
+
+.difficulty-modal-glow {
+  position: absolute;
+  inset: -20% -10% auto;
+  height: 55%;
+  background: radial-gradient(circle, rgba(99, 210, 255, 0.22), transparent 68%);
+  pointer-events: none;
+}
+
+.difficulty-modal-kicker,
+.difficulty-modal-card h2,
+.difficulty-modal-sub,
+.difficulty-modal-options,
+.difficulty-modal-hint,
+.difficulty-modal-confirm {
+  position: relative;
+  z-index: 1;
+}
+
+.difficulty-modal-kicker {
+  margin: 0 0 6px;
+  color: #9ad7ff;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+
+.difficulty-modal-card h2 {
+  margin: 0 0 6px;
+  font-size: 1.45rem;
+  color: #eaf7ff;
+  text-shadow: 0 0 18px rgba(99, 210, 255, 0.28);
+}
+
+.difficulty-modal-sub {
+  margin: 0 0 16px;
+  color: var(--muted, #9bb6d0);
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.difficulty-modal-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.difficulty-modal-option {
+  display: grid;
+  gap: 4px;
+  min-height: 72px;
+  padding: 12px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(120, 190, 255, 0.18);
+  background: rgba(8, 18, 32, 0.62);
+  color: #d7ecff;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.difficulty-modal-option:hover {
+  border-color: rgba(99, 210, 255, 0.55);
+  transform: translateY(-1px);
+}
+
+.difficulty-modal-option.is-active {
+  border-color: color-mix(in srgb, var(--primary-2, #63d2ff) 70%, white 10%);
+  color: #eaf7ff;
+  background:
+    radial-gradient(circle at 20% 30%, rgba(47, 155, 255, 0.28), transparent 60%),
+    rgba(12, 28, 48, 0.92);
+  box-shadow:
+    0 0 0 1px rgba(99, 210, 255, 0.22),
+    0 8px 18px rgba(47, 155, 255, 0.16);
+}
+
+.difficulty-modal-option[data-difficulty="hell"].is-active {
+  border-color: rgba(255, 93, 108, 0.72);
+  background:
+    radial-gradient(circle at 20% 30%, rgba(255, 93, 108, 0.28), transparent 60%),
+    rgba(36, 14, 22, 0.92);
+  box-shadow:
+    0 0 0 1px rgba(255, 93, 108, 0.22),
+    0 8px 18px rgba(255, 93, 108, 0.16);
+}
+
+.difficulty-modal-option .diff-label {
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.difficulty-modal-option .diff-desc {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--muted, #9bb6d0);
+  line-height: 1.35;
+}
+
+.difficulty-modal-option.is-active .diff-desc {
+  color: #cfe9ff;
+}
+
+.difficulty-modal-hint {
+  margin: 0 0 14px;
+  min-height: 1.2em;
+  color: #9ad7ff;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.difficulty-modal-confirm {
+  min-width: 160px;
+  min-height: 44px;
+}
+
+@keyframes difficulty-modal-pop {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 520px) {
+  .difficulty-modal-options {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* 合并条内：进度与按钮统一高度/圆角/字号 */
@@ -381,7 +692,7 @@
 .select-thumb {
   position: relative;
   display: grid;
-  grid-template-rows: auto auto auto;
+  grid-template-rows: auto auto auto auto;
   min-height: 0;
   padding: 0;
   border: 1px solid rgba(120, 190, 255, 0.18);

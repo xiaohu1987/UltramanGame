@@ -16,6 +16,9 @@
   let battle = null;
   /** 一键全自动打怪开关（跨局保持） */
   let autoBattleEnabled = false;
+  /** 难度：easy/normal/hard/hell，跨局 localStorage 保持 */
+  let difficultyId =
+    (window.MathChallenge && window.MathChallenge.loadDifficultyId()) || "easy";
   let randomizing = false;
   let randomFinalEffect = false;
 
@@ -118,6 +121,7 @@
       heroes,
       monsters,
       autoBattle: autoBattleEnabled,
+      difficulty: difficultyId,
       // 与指向性特效节奏对齐：轨迹 + 命中反馈后再推进
       resolveDelay: 920,
       aiThinkDelay: 620,
@@ -144,10 +148,27 @@
     UI.setAutoBattleUi(autoBattleEnabled);
     // 开战日志由 BattleEngine.start 写入，这里只补阵容与自动状态
     UI.appendLog(`${heroes.map((h) => h.name).join("、")} VS ${monsters.map((m) => m.name).join("、")}`);
+    {
+      const MC = window.MathChallenge;
+      const cfg = MC ? MC.getDifficulty(difficultyId) : null;
+      UI.appendLog(`难度：${cfg ? cfg.label : "初级"}`);
+    }
     if (autoBattleEnabled) {
       UI.appendLog("自动：开");
     }
     battle.start();
+  }
+
+  function setDifficulty(id) {
+    const MC = window.MathChallenge;
+    if (MC && MC.isDifficultyId(id)) {
+      difficultyId = MC.saveDifficultyId(id);
+    } else if (MC) {
+      difficultyId = MC.DEFAULT_DIFFICULTY;
+    } else {
+      difficultyId = "easy";
+    }
+    UI.setDifficultyUi(difficultyId);
   }
 
   function toggleAutoBattle() {
@@ -166,12 +187,23 @@
     }
   }
 
+  function enterSelectScreen() {
+    UI.showSelect();
+    refreshSelect();
+    UI.setDifficultyUi(difficultyId);
+    if (typeof UI.openDifficultyModal === "function") {
+      UI.openDifficultyModal(difficultyId);
+    }
+  }
+
   function restart() {
     battle = null;
     selectedIds = [];
     if (window.ArcadeFX) window.ArcadeFX.resetCombo();
-    UI.showSelect();
-    refreshSelect();
+    if (window.MathChallenge && typeof window.MathChallenge.abortChallenge === "function") {
+      window.MathChallenge.abortChallenge("restart");
+    }
+    enterSelectScreen();
   }
 
   function init() {
@@ -193,12 +225,12 @@
       onStart: startBattle,
       onCancelTarget: () => battle && battle.cancelTarget(),
       onToggleAuto: toggleAutoBattle,
+      onDifficultyChange: setDifficulty,
+      onDifficultyConfirm: setDifficulty,
       onRestart: restart,
     });
     UI.setAutoBattleUi(autoBattleEnabled);
-
-    UI.showSelect();
-    refreshSelect();
+    enterSelectScreen();
   }
 
   if (document.readyState === "loading") {

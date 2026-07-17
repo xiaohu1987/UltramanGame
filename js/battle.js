@@ -42,6 +42,10 @@
       this.winner = null;
       this.busy = false;
       this.autoBattle = !!options.autoBattle;
+      this.difficulty =
+        window.MathChallenge && window.MathChallenge.isDifficultyId(options.difficulty)
+          ? options.difficulty
+          : (window.MathChallenge && window.MathChallenge.DEFAULT_DIFFICULTY) || "easy";
       this.resolveDelay = options.resolveDelay || 900;
       this.aiThinkDelay = options.aiThinkDelay || 650;
       this.autoPlayerDelay = options.autoPlayerDelay || 420;
@@ -282,6 +286,7 @@
       this.busy = true;
       this.phase = PHASE.RESOLVING;
       this.pendingSkill = null;
+      this.clearAutoTimer();
       // 结算阶段保留出手快照：手动/自动奥特曼、怪兽 AI 都展示，避免技能区空白
       if (skill && actor) {
         this.autoChoice = {
@@ -296,20 +301,117 @@
 
       if (skill.cooldown > 0) skill.currentCd = skill.cooldown;
 
-      const result = this.applySkill(actor, skill, target);
-      // 先刷新数值 DOM，再播特效，避免 re-render 冲掉动画节点
-      this.onUpdate(this.snapshot());
-      this.onFx(result);
-      this.onLog(result.message, result.skillType);
+      const finishResolve = (result) => {
+        // 先刷新数值 DOM，再播特效，避免 re-render 冲掉动画节点
+        this.onUpdate(this.snapshot());
+        this.onFx(result);
+        this.onLog(result.message, result.skillType);
 
-      setTimeout(() => {
-        this.busy = false;
-        if (this.checkEnd()) return;
-        this.nextActor();
-      }, this.resolveDelay);
+        setTimeout(() => {
+          this.busy = false;
+          if (this.checkEnd()) return;
+          this.nextActor();
+        }, this.resolveDelay);
+      };
+
+      const runApply = (modifier) => {
+        const result = this.applySkill(actor, skill, target, modifier || {});
+        finishResolve(result);
+      };
+
+      const needsChallenge =
+        actor &&
+        actor.side === "hero" &&
+        window.MathChallenge &&
+        typeof window.MathChallenge.promptChallenge === "function" &&
+        window.MathChallenge.getDifficulty(this.difficulty).enabled;
+
+      if (!needsChallenge) {
+        runApply({ powerMul: 1, forceMiss: false, forceFail: false, reason: "skip" });
+        return;
+      }
+
+      this.onUpdate(this.snapshot());
+      this.onLog(`${actor.name} 心算准备中…`);
+
+      window.MathChallenge.promptChallenge({
+        difficultyId: this.difficulty,
+        skillName: skill.name,
+        actorName: actor.name,
+      })
+        .then((challenge) => {
+          if (this.phase === PHASE.ENDED) return;
+          if (challenge.skipped) {
+            runApply({ powerMul: 1, forceMiss: false, forceFail: false, reason: "skip" });
+            return;
+          }
+          if (challenge.correct) {
+            this.onLog("心算成功！威力提升");
+            runApply({
+              powerMul: challenge.powerMul || 1.05,
+              forceMiss: false,
+              forceFail: false,
+              reason: "correct",
+            });
+            return;
+          }
+          const timed = challenge.timedOut || challenge.reason === "timeout";
+          this.onLog(timed ? "心算超时…技能失败" : "心算失败…技能落空");
+          runApply({
+            powerMul: 0,
+            forceMiss: true,
+            forceFail: true,
+            reason: timed ? "timeout" : "wrong",
+          });
+        })
+        .catch(() => {
+          if (this.phase === PHASE.ENDED) return;
+          this.onLog("心算中断…技能失败");
+          runApply({ powerMul: 0, forceMiss: true, forceFail: true, reason: "error" });
+        });
     }
 
-    applySkill(actor, skill, target) {
+    applySkill(actor, skill, target, modifier = {}) {
+      const powerMul = Number.isFinite(modifier.powerMul) ? modifier.powerMul : 1;
+      const forceMiss = !!modifier.forceMiss;
+      const forceFail = !!modifier.forceFail;
+      const boostedPower = (base) => {
+        const n = Number(base) || 0;
+        return n * (powerMul > 0 ? powerMul : 1);
+      };
+      const effectivePower = boostedPower(skill.power);
+      const markBoost = (fxObj) => {
+        if (powerMul > 1.001 && fxObj && fxObj.message) {
+          fxObj.message += "（心算强化）";
+          fxObj.mathBoosted = true;
+        }
+        return fxObj;
+      };
+
+      // 答错/超时：攻击 Miss，治疗/Buff/复活失败
+      if (forceMiss || forceFail) {
+        const damageTypes = [SKILL_TYPES.DAMAGE, SKILL_TYPES.DAMAGE_ALL, SKILL_TYPES.MULTI_HIT, SKILL_TYPES.LIFESTEAL];
+        const isDamage = damageTypes.includes(skill.type);
+        const fxFail = {
+          actorUid: actor.uid,
+          targetUid: target ? target.uid : actor.uid,
+          skillType: skill.type,
+          amount: 0,
+          crit: false,
+          skillPower: skill.power || 1,
+          skillName: skill.name || "",
+          message: "",
+          missed: isDamage,
+          failed: !isDamage,
+        };
+        if (isDamage) {
+          fxFail.message = `${actor.name} 使用 ${skill.name}…心算失败，攻击落空！`;
+        } else {
+          fxFail.message = `${actor.name} 使用 ${skill.name}…心算失败，效果没有发动`;
+        }
+        return fxFail;
+      }
+
       const fx = {
         actorUid: actor.uid,
         targetUid: target.uid,
@@ -328,7 +430,7 @@
         const outcomes = [];
         targets.forEach((victim) => {
           for (let hit = 0; hit < hits && victim.alive; hit += 1) {
-            outcomes.push({ target: victim, ...this.dealDamage(actor, victim, skill.power) });
+            outcomes.push({ target: victim, ...this.dealDamage(actor, victim, effectivePower) });
           }
         });
         const total = outcomes.reduce((sum, outcome) => sum + outcome.amount, 0);
@@ -352,7 +454,7 @@
           fx.healAmount = heal;
           fx.message += `，吸血 +${heal}`;
         }
-        return fx;
+        return markBoost(fx);
       }
 
       if (skill.type === SKILL_TYPES.HEAL_ALL) {
@@ -360,7 +462,7 @@
         const targetAmounts = {};
         const total = targets.reduce((sum, unit) => {
           const before = unit.hp;
-          unit.hp = Math.min(unit.maxHp, unit.hp + Math.round(unit.maxHp * skill.power));
+          unit.hp = Math.min(unit.maxHp, unit.hp + Math.round(unit.maxHp * effectivePower));
           const healed = unit.hp - before;
           targetAmounts[unit.uid] = healed;
           return sum + healed;
@@ -370,12 +472,12 @@
         fx.targetAmounts = targetAmounts;
         fx.amount = total;
         fx.message = `${actor.name} 使用 ${skill.name}，全体恢复 +${total}`;
-        return fx;
+        return markBoost(fx);
       }
 
       if (skill.type === SKILL_TYPES.REVIVE || skill.type === SKILL_TYPES.REVIVE_ALL) {
         const targets = skill.type === SKILL_TYPES.REVIVE_ALL ? this.getValidTargets(actor, skill) : [target];
-        const revived = targets.map((unit) => ({ unit, hp: this.reviveUnit(unit, skill.power) }));
+        const revived = targets.map((unit) => ({ unit, hp: this.reviveUnit(unit, Math.min(1, effectivePower)) }));
         fx.targetUid = revived[0] ? revived[0].unit.uid : actor.uid;
         fx.targets = revived.map((entry) => entry.unit.uid);
         fx.targetAmounts = revived.reduce((amounts, entry) => {
@@ -384,31 +486,30 @@
         }, {});
         fx.amount = revived.reduce((sum, entry) => sum + entry.hp, 0);
         fx.message = `${actor.name} 使用 ${skill.name}，复活 ${revived.map((entry) => entry.unit.name).join("、")}`;
-        return fx;
+        return markBoost(fx);
       }
 
       if (skill.type === SKILL_TYPES.DODGE) {
         target.buffs = target.buffs.filter((effect) => effect.kind !== "dodge");
-        target.buffs.push({ kind: "dodge", value: skill.power, turnsLeft: skill.duration || 2, label: "闪避" });
-        fx.amount = Math.round(skill.power * 100);
+        target.buffs.push({ kind: "dodge", value: effectivePower, turnsLeft: skill.duration || 2, label: "闪避" });
+        fx.amount = Math.round(effectivePower * 100);
         fx.message = `${actor.name} 使用 ${skill.name}，获得闪避`;
-        return fx;
+        return markBoost(fx);
       }
 
       if (skill.type === SKILL_TYPES.POISON) {
         target.buffs = target.buffs.filter((effect) => effect.kind !== "poison");
-        target.buffs.push({ kind: "poison", value: skill.power, turnsLeft: skill.duration || 3, label: "中毒" });
-        fx.amount = Math.round(target.maxHp * skill.power);
+        target.buffs.push({ kind: "poison", value: effectivePower, turnsLeft: skill.duration || 3, label: "中毒" });
+        fx.amount = Math.round(target.maxHp * effectivePower);
         fx.message = `${actor.name} 使用 ${skill.name}，${target.name} 陷入中毒`;
-        return fx;
+        return markBoost(fx);
       }
 
       if (skill.type === SKILL_TYPES.DAMAGE) {
-        const raw = actor.atk * skill.power;
+        const raw = actor.atk * effectivePower;
         const mitigated = Math.max(8, Math.round(raw - target.def * 0.55));
         const variance = Math.round(mitigated * (0.92 + Math.random() * 0.16));
-        // 高倍率技能更容易暴击，强化街机反馈
-        const critChance = Math.min(0.42, 0.12 + Math.max(0, skill.power - 1) * 0.16);
+        const critChance = Math.min(0.42, 0.12 + Math.max(0, effectivePower - 1) * 0.16);
         const isCrit = Math.random() < critChance;
         const dmg = Math.max(1, Math.round(variance * (isCrit ? 1.55 : 1)));
         target.hp = Math.max(0, target.hp - dmg);
@@ -422,17 +523,17 @@
           target.hp = 0;
           fx.message += ` ${target.name} 倒下！`;
         }
-        return fx;
+        return markBoost(fx);
       }
 
       if (skill.type === SKILL_TYPES.HEAL) {
-        const heal = Math.round(target.maxHp * skill.power);
+        const heal = Math.round(target.maxHp * effectivePower);
         const before = target.hp;
         target.hp = Math.min(target.maxHp, target.hp + heal);
         const actual = target.hp - before;
         fx.amount = actual;
         fx.message = `${actor.name} 治疗 ${target.name} +${actual}`;
-        return fx;
+        return markBoost(fx);
       }
 
       if (skill.type === SKILL_TYPES.BUFF_ATK) {
@@ -440,14 +541,14 @@
         target.buffs = target.buffs.filter((b) => b.kind !== "atk");
         target.buffs.push({
           kind: "atk",
-          value: skill.power,
+          value: effectivePower,
           turnsLeft: duration,
           label: "攻击提升",
         });
         this.recalcStats(target);
-        fx.amount = Math.round(skill.power * 100);
+        fx.amount = Math.round(effectivePower * 100);
         fx.message = `${actor.name} 让 ${target.name} 变强！`;
-        return fx;
+        return markBoost(fx);
       }
 
       if (skill.type === SKILL_TYPES.DEBUFF_DEF) {
@@ -455,18 +556,18 @@
         target.buffs = target.buffs.filter((b) => b.kind !== "def");
         target.buffs.push({
           kind: "def",
-          value: -skill.power,
+          value: -effectivePower,
           turnsLeft: duration,
           label: "防御下降",
         });
         this.recalcStats(target);
-        fx.amount = Math.round(skill.power * 100);
+        fx.amount = Math.round(effectivePower * 100);
         fx.message = `${actor.name} 削弱 ${target.name}！`;
-        return fx;
+        return markBoost(fx);
       }
 
       fx.message = `${actor.name} 用了 ${skill.name}`;
-      return fx;
+      return markBoost(fx);
     }
 
     clearAutoTimer() {
@@ -746,6 +847,7 @@
         monsters: this.monsters,
         winner: this.winner,
         autoBattle: this.autoBattle,
+        difficulty: this.difficulty,
         attackRampPercent: Math.round(this.getAttackRamp() * 100),
         upcomingTurns: this.getUpcomingTurns(),
         validTargetUids:

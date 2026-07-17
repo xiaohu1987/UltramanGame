@@ -1,0 +1,29 @@
+{
+  "feature": "difficulty-math-challenge",
+  "tasks": ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8"],
+  "status": "completed",
+  "rules": {
+    "easy": { "enabled": false },
+    "normal": { "max": 10, "timeLimit": 30, "bonusMul": 1.05 },
+    "hard": { "max": 20, "timeLimit": 30, "bonusMul": 1.05 },
+    "hell": { "max": 100, "timeLimit": 30, "bonusMul": 1.05 },
+    "timeout": "fail_like_wrong",
+    "autoBattle": "still_math"
+  },
+  "files": [
+    "docs/difficulty-integration-map.md",
+    "js/math-challenge.js",
+    "css/math-challenge.css",
+    "css/select-ui.css",
+    "index.html",
+    "js/ui.js",
+    "js/main.js",
+    "js/battle.js",
+    "js/fx.js"
+  ],
+  "checks": {
+    "syntax": "battle/main/ui/math-challenge/fx OK",
+    "unit": "tmp-check-math-challenge.js / tmp-verify-difficulty.js / tmp-verify-boundaries.js / tmp-final-check.js / tmp-verify-now.js OK",
+    "now_verify": "NOW_VERIFY_OK"
+  }
+}

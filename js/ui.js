@@ -41,6 +41,12 @@
     resultIcon: document.getElementById("result-icon"),
     resultKicker: document.getElementById("result-kicker"),
     btnRestart: document.getElementById("btn-restart"),
+    difficultyOptions: document.getElementById("difficulty-options"),
+    difficultyDesc: document.getElementById("difficulty-desc"),
+    difficultyModal: document.getElementById("difficulty-modal"),
+    difficultyModalOptions: document.getElementById("difficulty-modal-options"),
+    difficultyModalHint: document.getElementById("difficulty-modal-hint"),
+    btnDifficultyConfirm: document.getElementById("btn-difficulty-confirm"),
   };
 
   /** 技能类型默认图标 */
@@ -846,6 +852,83 @@
     els.resultModal.hidden = false;
   }
 
+
+  /** 弹窗内临时选中，确认前不写 storage */
+  let pendingDifficultyId = "easy";
+
+  function normalizeDifficultyId(difficultyId) {
+    const MC = window.MathChallenge;
+    if (MC && MC.isDifficultyId(difficultyId)) return difficultyId;
+    return (MC && MC.DEFAULT_DIFFICULTY) || "easy";
+  }
+
+  function getDifficultyCfg(difficultyId) {
+    const MC = window.MathChallenge;
+    const id = normalizeDifficultyId(difficultyId);
+    if (MC) return MC.getDifficulty(id);
+    return { id, label: "初级", desc: "直接出手，和现在一样" };
+  }
+
+  function paintDifficultyButtons(container, difficultyId) {
+    if (!container) return;
+    const id = normalizeDifficultyId(difficultyId);
+    container.querySelectorAll("[data-difficulty]").forEach((btn) => {
+      const active = btn.getAttribute("data-difficulty") === id;
+      btn.classList.toggle("is-active", active);
+      btn.setAttribute("aria-pressed", active ? "true" : "false");
+    });
+  }
+
+  function setModalPending(difficultyId) {
+    pendingDifficultyId = normalizeDifficultyId(difficultyId);
+    const cfg = getDifficultyCfg(pendingDifficultyId);
+    paintDifficultyButtons(els.difficultyModalOptions, pendingDifficultyId);
+    if (els.difficultyModalHint) {
+      els.difficultyModalHint.textContent = cfg.desc || "";
+    }
+  }
+
+  function openDifficultyModal(currentId) {
+    setModalPending(currentId);
+    if (!els.difficultyModal) return;
+    els.difficultyModal.hidden = false;
+    els.difficultyModal.classList.add("show");
+    if (els.btnDifficultyConfirm) {
+      try {
+        els.btnDifficultyConfirm.focus({ preventScroll: true });
+      } catch (_) {
+        /* ignore */
+      }
+    }
+  }
+
+  function closeDifficultyModal() {
+    if (!els.difficultyModal) return;
+    els.difficultyModal.hidden = true;
+    els.difficultyModal.classList.remove("show");
+  }
+
+  function isDifficultyModalOpen() {
+    return !!(els.difficultyModal && !els.difficultyModal.hidden);
+  }
+
+  function getPendingDifficultyId() {
+    return pendingDifficultyId;
+  }
+
+  function setDifficultyUi(difficultyId) {
+    const id = normalizeDifficultyId(difficultyId);
+    const cfg = getDifficultyCfg(id);
+    if (els.difficultyDesc) {
+      els.difficultyDesc.textContent = cfg.desc || "";
+    }
+    paintDifficultyButtons(els.difficultyOptions, id);
+    // 弹窗打开时不覆盖用户正在点的临时档
+    if (!isDifficultyModalOpen()) {
+      setModalPending(id);
+    }
+  }
+
   function bindStatic(handlers) {
     els.btnClear.addEventListener("click", (e) => {
       if (fx()) fx().playUi("click", e.currentTarget);
@@ -875,6 +958,38 @@
       if (fx()) fx().playUi("click", e.currentTarget);
       handlers.onRestart();
     });
+    if (els.difficultyOptions) {
+      els.difficultyOptions.addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-difficulty]");
+        if (!btn || !els.difficultyOptions.contains(btn)) return;
+        const id = btn.getAttribute("data-difficulty");
+        if (!id) return;
+        if (fx()) fx().playUi("select", btn);
+        if (handlers.onDifficultyChange) handlers.onDifficultyChange(id);
+      });
+    }
+    if (els.difficultyModalOptions) {
+      els.difficultyModalOptions.addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-difficulty]");
+        if (!btn || !els.difficultyModalOptions.contains(btn)) return;
+        const id = btn.getAttribute("data-difficulty");
+        if (!id) return;
+        if (fx()) fx().playUi("select", btn);
+        setModalPending(id);
+      });
+    }
+    if (els.btnDifficultyConfirm) {
+      els.btnDifficultyConfirm.addEventListener("click", (e) => {
+        if (fx()) fx().playUi("start", e.currentTarget);
+        const id = pendingDifficultyId;
+        if (handlers.onDifficultyConfirm) {
+          handlers.onDifficultyConfirm(id);
+        } else if (handlers.onDifficultyChange) {
+          handlers.onDifficultyChange(id);
+        }
+        closeDifficultyModal();
+      });
+    }
   }
 
   // 初始化特效层
@@ -895,5 +1010,10 @@
     showResult,
     bindStatic,
     setAutoBattleUi,
+    setDifficultyUi,
+    openDifficultyModal,
+    closeDifficultyModal,
+    isDifficultyModalOpen,
+    getPendingDifficultyId,
   };
 })();
