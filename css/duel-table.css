@@ -486,7 +486,7 @@
   display: grid;
   grid-area: auto;
   grid-template-columns: 1fr;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
   gap: 8px;
   min-height: 0;
   height: 100%;
@@ -528,7 +528,7 @@
 
 #screen-battle .target-hint {
   min-height: 0;
-  max-width: 9em;
+  max-width: 12em;
   padding: 3px 8px;
   font-size: 0.62rem;
   white-space: nowrap;
@@ -625,15 +625,55 @@
   -webkit-box-orient: unset;
 }
 
+/* 选目标阶段：高亮已选技能，弱化其他技能 */
+#screen-battle .skill-btn.is-pending {
+  border-color: color-mix(in srgb, var(--accent, #63d2ff) 72%, white 12%);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--accent, #63d2ff) 45%, transparent),
+    0 0 18px color-mix(in srgb, var(--accent, #63d2ff) 28%, transparent),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  background:
+    radial-gradient(circle at 18% 30%, color-mix(in srgb, var(--accent, #63d2ff) 34%, transparent), transparent 58%),
+    rgba(10, 28, 46, 0.72);
+}
+
+#screen-battle .skill-btn.is-pending .skill-meta {
+  color: #ffe7a3;
+  font-weight: 800;
+}
+
+#screen-battle .skill-buttons.selecting-target .skill-btn:disabled {
+  opacity: 0.42;
+  filter: saturate(0.72);
+}
+
+/* 取消按钮：选目标时可见，平时隐藏 */
 #screen-battle #btn-cancel-target {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  padding: 0;
-  border: 0;
-  clip: rect(0 0 0 0);
-  overflow: hidden;
+  display: none;
+  width: 100%;
+  min-height: 34px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 209, 102, 0.38);
+  background:
+    linear-gradient(180deg, rgba(255, 209, 102, 0.16), rgba(18, 28, 40, 0.55));
+  color: #ffe7a3;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.18);
+}
+
+#screen-battle #btn-cancel-target:not([hidden]) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#screen-battle #btn-cancel-target:hover {
+  border-color: rgba(255, 209, 102, 0.58);
+  background:
+    linear-gradient(180deg, rgba(255, 209, 102, 0.24), rgba(18, 28, 40, 0.62));
 }
 
 #screen-battle .fighter-card.current {

@@ -556,6 +556,8 @@
       els.targetHint.textContent = "";
       els.skillButtons.innerHTML = "";
       els.btnCancelTarget.hidden = true;
+      els.btnCancelTarget.textContent = "取消";
+      if (els.skillButtons) els.skillButtons.classList.remove("selecting-target");
     } else if (current) {
       const sideLabel = current.side === "hero" ? "你" : "怪兽";
       const attackRampText = state.attackRampPercent > 0 ? ` · 战意+${state.attackRampPercent}%` : "";
@@ -565,17 +567,31 @@
     }
 
     if (state.phase === "player_select_target") {
-      els.targetHint.textContent = "点高亮目标";
+      const pendingName = state.pendingSkill ? state.pendingSkill.name : "技能";
+      els.targetHint.textContent = `点目标 · ${pendingName}`;
       els.btnCancelTarget.hidden = false;
+      els.btnCancelTarget.textContent = "取消技能";
+      if (els.skillButtons) els.skillButtons.classList.add("selecting-target");
     } else {
       els.targetHint.textContent =
         state.phase === "player_select_skill" ? (state.autoBattle ? "自动中…" : "点一个技能") : "";
       els.btnCancelTarget.hidden = true;
+      els.btnCancelTarget.textContent = "取消";
+      if (els.skillButtons) els.skillButtons.classList.remove("selecting-target");
     }
 
-    // 技能按钮：左侧当前奥特曼头像 + 右侧三个技能
+    // 技能按钮：选技能 / 选目标阶段都保留列表，避免操作区突然变空
     els.skillButtons.innerHTML = "";
-    if (state.phase === "player_select_skill" && current && current.side === "hero" && !state.autoBattle) {
+    const showSkillPanel =
+      current &&
+      current.side === "hero" &&
+      !state.autoBattle &&
+      (state.phase === "player_select_skill" || state.phase === "player_select_target");
+
+    if (showSkillPanel) {
+      const selectingTarget = state.phase === "player_select_target";
+      const pendingSkillId = state.pendingSkill ? state.pendingSkill.id : null;
+
       const owner = document.createElement("div");
       owner.className = "skill-owner";
       owner.style.setProperty("--accent", current.color);
@@ -585,7 +601,7 @@
         </div>
         <div class="skill-owner-meta">
           <strong>${current.name}</strong>
-          <span>点技能出手</span>
+          <span>${selectingTarget ? "已选技能，点目标" : "点技能出手"}</span>
         </div>
       `;
       els.skillButtons.appendChild(owner);
@@ -593,7 +609,8 @@
       current.skills.forEach((skill) => {
         const btn = document.createElement("button");
         btn.type = "button";
-        btn.className = `skill-btn ${skillTypeClass(skill.type)}`;
+        const isPending = selectingTarget && pendingSkillId === skill.id;
+        btn.className = `skill-btn ${skillTypeClass(skill.type)}${isPending ? " is-pending" : ""}`;
         btn.style.setProperty("--accent", current.color);
         const friendlyUnits = state.heroes;
         const enemyUnits = state.monsters;
@@ -606,19 +623,35 @@
           (skill.target === "dead_ally" && friendlyUnits.some((unit) => !unit.alive)) ||
           (skill.target === "all_dead_allies" && friendlyUnits.some((unit) => !unit.alive));
         const usable = skill.currentCd <= 0 && usableTargets;
-        btn.disabled = !usable;
+        // 选目标阶段：保留技能列表，锁定其他技能，突出已选技能
+        btn.disabled = selectingTarget ? !isPending : !usable;
+        if (selectingTarget) {
+          btn.setAttribute("aria-pressed", isPending ? "true" : "false");
+        } else {
+          btn.removeAttribute("aria-pressed");
+        }
         btn.innerHTML = `
           <span class="skill-head">
             <span class="skill-icon ${skillTypeClass(skill.type)}" aria-hidden="true">${skillIcon(skill)}</span>
             <span class="skill-name">${skill.name}</span>
           </span>
-          <span class="skill-meta">${skill.currentCd > 0 ? `等 ${skill.currentCd}` : "可用"}</span>
+          <span class="skill-meta">${
+            isPending ? "已选" : skill.currentCd > 0 ? `等 ${skill.currentCd}` : "可用"
+          }</span>
           <span class="skill-desc">${skill.desc || "暂无说明"}</span>
         `;
-        btn.addEventListener("click", () => {
-          if (fx()) fx().playUi("click", btn);
-          handlers.onSkill(skill.id);
-        });
+        if (!selectingTarget) {
+          btn.addEventListener("click", () => {
+            if (fx()) fx().playUi("click", btn);
+            handlers.onSkill(skill.id);
+          });
+        } else if (isPending) {
+          // 再次点击已选技能 = 取消，回到技能选择
+          btn.addEventListener("click", () => {
+            if (fx()) fx().playUi("click", btn);
+            handlers.onCancelTarget();
+          });
+        }
         els.skillButtons.appendChild(btn);
       });
     }
