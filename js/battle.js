@@ -282,12 +282,8 @@
       this.busy = true;
       this.phase = PHASE.RESOLVING;
       this.pendingSkill = null;
-      // 结算阶段继续展示选用的技能（自动奥特曼 / 怪兽 AI）
-      if (
-        skill &&
-        actor &&
-        (actor.side === "monster" || (this.autoBattle && actor.side === "hero"))
-      ) {
+      // 结算阶段保留出手快照：手动/自动奥特曼、怪兽 AI 都展示，避免技能区空白
+      if (skill && actor) {
         this.autoChoice = {
           skill,
           target,

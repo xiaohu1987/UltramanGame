@@ -558,7 +558,12 @@
       els.btnCancelTarget.hidden = true;
       els.btnCancelTarget.textContent = "取消";
       if (els.skillButtons) {
-        els.skillButtons.classList.remove("selecting-target", "auto-locked", "monster-skill-view");
+        els.skillButtons.classList.remove(
+          "selecting-target",
+          "auto-locked",
+          "monster-skill-view",
+          "resolve-action-view"
+        );
       }
     } else if (current) {
       const sideLabel = current.side === "hero" ? "你" : "怪兽";
@@ -579,6 +584,9 @@
       current &&
       current.side === "hero" &&
       (state.phase === "player_select_skill" || state.phase === "resolving");
+    const isHeroResolving =
+      !!(current && current.side === "hero" && state.phase === "resolving");
+    const isResolvingAction = state.phase === "resolving" && !!autoChoice;
 
     if (state.phase === "player_select_target") {
       const pendingName = state.pendingSkill ? state.pendingSkill.name : "技能";
@@ -595,6 +603,10 @@
         els.targetHint.textContent = autoSkillName
           ? `怪兽 · ${autoSkillName}${autoTargetName ? ` → ${autoTargetName}` : ""}`
           : "怪兽思考中…";
+      } else if (isHeroResolving) {
+        els.targetHint.textContent = autoSkillName
+          ? `出手中 · ${autoSkillName}${autoTargetName ? ` → ${autoTargetName}` : ""}`
+          : "出手中…";
       } else {
         els.targetHint.textContent = state.phase === "player_select_skill" ? "点一个技能" : "";
       }
@@ -610,16 +622,17 @@
       current.side === "hero" &&
       (state.phase === "player_select_skill" ||
         state.phase === "player_select_target" ||
-        (state.autoBattle && state.phase === "resolving"));
+        state.phase === "resolving");
     const showSkillPanel = showHeroSkillPanel || isMonsterSkillPhase;
 
     // 怪兽回合 / 自动战斗：技能区只读
     if (els.skillButtons) {
       els.skillButtons.classList.toggle(
         "auto-locked",
-        !!state.autoBattle || isMonsterSkillPhase
+        !!state.autoBattle || isMonsterSkillPhase || isHeroResolving
       );
       els.skillButtons.classList.toggle("monster-skill-view", isMonsterSkillPhase);
+      els.skillButtons.classList.toggle("resolve-action-view", isResolvingAction);
     }
 
     if (showSkillPanel) {
@@ -627,7 +640,7 @@
       const pendingSkillId = state.pendingSkill ? state.pendingSkill.id : null;
       const autoSkillId = autoChoice ? autoChoice.skillId : null;
       const isAutoMode = !!state.autoBattle && current.side === "hero";
-      const isReadOnly = isAutoMode || isMonsterSkillPhase;
+      const isReadOnly = isAutoMode || isMonsterSkillPhase || isHeroResolving;
 
       const owner = document.createElement("div");
       owner.className = "skill-owner";
@@ -647,9 +660,13 @@
                 ? autoSkillName
                   ? `自动用 ${autoSkillName}`
                   : "自动选择中…"
-                : selectingTarget
-                  ? "已选技能，点目标"
-                  : "点技能出手"
+                : isHeroResolving
+                  ? autoSkillName
+                    ? `使用 ${autoSkillName}`
+                    : "出手中…"
+                  : selectingTarget
+                    ? "已选技能，点目标"
+                    : "点技能出手"
           }</span>
         </div>
       `;
@@ -660,9 +677,12 @@
         btn.type = "button";
         const isPending = selectingTarget && pendingSkillId === skill.id;
         const isAutoSelected = isReadOnly && autoSkillId === skill.id;
+        const isResolvingSelected = isResolvingAction && isAutoSelected;
         btn.className = `skill-btn ${skillTypeClass(skill.type)}${
           isPending || isAutoSelected ? " is-pending" : ""
-        }${isAutoSelected ? " is-auto-selected" : ""}`;
+        }${isAutoSelected ? " is-auto-selected" : ""}${
+          isResolvingSelected ? " is-resolving" : ""
+        }`;
         btn.style.setProperty("--accent", current.color);
         const friendlyUnits = current.side === "hero" ? state.heroes : state.monsters;
         const enemyUnits = current.side === "hero" ? state.monsters : state.heroes;
@@ -687,23 +707,36 @@
         } else {
           btn.removeAttribute("aria-pressed");
         }
+        const metaText = isResolvingSelected
+          ? "出手中"
+          : isAutoSelected
+            ? isMonsterSkillPhase
+              ? "出手"
+              : isHeroResolving && !isAutoMode
+                ? "出手"
+                : "自动"
+            : isPending
+              ? "已选"
+              : skill.currentCd > 0
+                ? `等 ${skill.currentCd}`
+                : "可用";
+        const descText = isResolvingSelected
+          ? autoTargetName
+            ? `目标 · ${autoTargetName}`
+            : "结算中…"
+          : skill.desc || "暂无说明";
         btn.innerHTML = `
           <span class="skill-head">
             <span class="skill-icon ${skillTypeClass(skill.type)}" aria-hidden="true">${skillIcon(skill)}</span>
             <span class="skill-name">${skill.name}</span>
           </span>
-          <span class="skill-meta">${
-            isAutoSelected
-              ? isMonsterSkillPhase
-                ? "出手"
-                : "自动"
-              : isPending
-                ? "已选"
-                : skill.currentCd > 0
-                  ? `等 ${skill.currentCd}`
-                  : "可用"
-          }</span>
-          <span class="skill-desc">${skill.desc || "暂无说明"}</span>
+          <span class="skill-meta">${metaText}</span>
+          <span class="skill-desc">${descText}</span>
+          ${
+            isResolvingSelected
+              ? `<span class="skill-resolve-bar" aria-hidden="true"><span></span></span>`
+              : ""
+          }
         `;
         if (!isReadOnly && !selectingTarget) {
           btn.addEventListener("click", () => {

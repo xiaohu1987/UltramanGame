@@ -956,3 +956,58 @@
   background: color-mix(in srgb, #ff6b7a 34%, rgba(8, 16, 28, 0.82));
   border-color: rgba(255, 138, 149, 0.5);
 }
+
+/* 结算期：进度特效直接挂在已选技能按钮上 */
+.skill-btn.is-resolving {
+  position: relative;
+  overflow: hidden;
+  border-color: color-mix(in srgb, var(--accent, #63d2ff) 82%, white 12%);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--accent, #63d2ff) 52%, transparent),
+    0 0 20px color-mix(in srgb, var(--accent, #63d2ff) 34%, transparent),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  background:
+    radial-gradient(circle at 18% 30%, color-mix(in srgb, var(--accent, #63d2ff) 40%, transparent), transparent 58%),
+    rgba(10, 28, 46, 0.86);
+}
+
+.skill-btn.is-resolving .skill-meta {
+  color: #9ef0ff;
+  font-weight: 800;
+}
+
+.skill-btn.is-resolving .skill-desc {
+  color: #c7e8ff;
+}
+
+.skill-resolve-bar {
+  grid-column: 1 / -1;
+  position: relative;
+  height: 4px;
+  margin-top: 2px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.skill-resolve-bar span {
+  display: block;
+  width: 42%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--accent, #63d2ff) 30%, transparent),
+    color-mix(in srgb, var(--accent, #63d2ff) 92%, white 8%)
+  );
+  animation: skill-resolve-sweep 0.9s ease-in-out infinite;
+}
+
+@keyframes skill-resolve-sweep {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(260%);
+  }
+}

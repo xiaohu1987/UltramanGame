@@ -625,7 +625,7 @@
   -webkit-box-orient: unset;
 }
 
-/* 选目标阶段：高亮已选技能，弱化其他技能 */
+/* 閫夌洰鏍囬樁娈碉細楂樹寒宸查€夋妧鑳斤紝寮卞寲鍏朵粬鎶€鑳?*/
 #screen-battle .skill-btn.is-pending {
   border-color: color-mix(in srgb, var(--accent, #63d2ff) 72%, white 12%);
   box-shadow:
@@ -687,13 +687,60 @@
   font-weight: 800;
 }
 
+/* 结算期：进度特效直接挂在已选技能按钮上 */
+#screen-battle .skill-btn.is-resolving {
+  position: relative;
+  overflow: hidden;
+  border-color: color-mix(in srgb, var(--accent, #63d2ff) 82%, white 12%);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--accent, #63d2ff) 52%, transparent),
+    0 0 18px color-mix(in srgb, var(--accent, #63d2ff) 32%, transparent),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  background:
+    radial-gradient(circle at 18% 30%, color-mix(in srgb, var(--accent, #63d2ff) 40%, transparent), transparent 58%),
+    rgba(10, 28, 46, 0.86);
+}
+
+#screen-battle .skill-btn.is-resolving .skill-meta {
+  color: #9ef0ff;
+  font-weight: 800;
+}
+
+#screen-battle .skill-btn.is-resolving .skill-desc {
+  color: #c7e8ff;
+}
+
+#screen-battle .skill-resolve-bar {
+  grid-column: 1 / -1;
+  position: relative;
+  height: 3px;
+  margin-top: 1px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+#screen-battle .skill-resolve-bar span {
+  display: block;
+  width: 42%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--accent, #63d2ff) 30%, transparent),
+    color-mix(in srgb, var(--accent, #63d2ff) 92%, white 8%)
+  );
+  animation: skill-resolve-sweep 0.9s ease-in-out infinite;
+}
+
+
 
 #screen-battle .skill-buttons.selecting-target .skill-btn:disabled {
   opacity: 0.42;
   filter: saturate(0.72);
 }
 
-/* 取消按钮：选目标时可见，平时隐藏 */
+/* 鍙栨秷鎸夐挳锛氶€夌洰鏍囨椂鍙锛屽钩鏃堕殣钘?*/
 #screen-battle #btn-cancel-target {
   display: none;
   width: 100%;
@@ -1077,7 +1124,7 @@
 
 #screen-select .select-filter-hint { font-size: 0.76rem; }
 
-/* 取消 .panel-actions 的 margin-top，保证进度与按钮同一水平线 */
+/* 鍙栨秷 .panel-actions 鐨?margin-top锛屼繚璇佽繘搴︿笌鎸夐挳鍚屼竴姘村钩绾?*/
 #screen-select .select-merged-bar .select-actions,
 #screen-select .select-merged-bar .select-actions.panel-actions,
 #screen-select .select-actions {
