@@ -269,3 +269,17 @@
       0 0 36px rgba(255, 93, 108, 0.42);
   }
 }
+
+/* 答题离场特效：DOM 卡片交给 Canvas，避免双重显示 */
+.math-modal-card.is-fx-out {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transform: scale(0.96);
+  transition: opacity 0.12s ease, transform 0.12s ease;
+}
+
+.math-modal.is-fx-playing .math-modal-backdrop {
+  opacity: 0.35;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}

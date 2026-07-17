@@ -269,6 +269,48 @@
     }
   }
 
+  function getCardRect() {
+    const root = ensureModal();
+    const card = root.querySelector(".math-modal-card");
+    if (card && typeof card.getBoundingClientRect === "function") {
+      return card.getBoundingClientRect();
+    }
+    return {
+      left: window.innerWidth * 0.5 - 160,
+      top: window.innerHeight * 0.5 - 120,
+      width: 320,
+      height: 240,
+    };
+  }
+
+  function setCardFxOut(on) {
+    const root = ensureModal();
+    const card = root.querySelector(".math-modal-card");
+    if (card) card.classList.toggle("is-fx-out", !!on);
+    root.classList.toggle("is-fx-playing", !!on);
+  }
+
+  function playAnswerExitFx(correct, targetUid) {
+    const engine = window.ArcadeFX;
+    if (!engine || typeof engine.playMathAnswerFx !== "function") {
+      return Promise.resolve();
+    }
+    const sourceRect = getCardRect();
+    setCardFxOut(true);
+    let targetPoint = null;
+    if (targetUid && typeof engine.centerOf === "function") {
+      targetPoint = engine.centerOf(targetUid);
+    }
+    return engine
+      .playMathAnswerFx({
+        correct: !!correct,
+        sourceRect,
+        targetUid: targetUid || null,
+        targetPoint,
+      })
+      .catch(() => {});
+  }
+
   function closeModal(result) {
     if (!activeSession || activeSession.closed) return;
     activeSession.closed = true;
@@ -283,7 +325,14 @@
     }
     const root = ensureModal();
     root.hidden = true;
-    root.classList.remove("show", "is-urgent");
+    root.classList.remove("show", "is-urgent", "is-fx-playing");
+    setCardFxOut(false);
+    if (window.ArcadeFX && typeof window.ArcadeFX.cancelMathAnswerFx === "function") {
+      // only cancel if a sequence is still active without waiting (hard close / replace)
+      if (window.ArcadeFX.mathFx && window.ArcadeFX.mathFx.active) {
+        window.ArcadeFX.cancelMathAnswerFx();
+      }
+    }
     const form = root.querySelector("#math-challenge-form");
     if (form) form.onsubmit = null;
     const resolve = activeSession.resolve;
@@ -293,7 +342,7 @@
 
   /**
    * 弹出心算挑战；初级或未启用时立即成功跳过
-   * @param {{ difficultyId?: string, skillName?: string, actorName?: string }} options
+   * @param {{ difficultyId?: string, skillName?: string, actorName?: string, targetUid?: string, actorUid?: string }} options
    * @returns {Promise<{ correct: boolean, timedOut: boolean, skipped: boolean, question: object|null, powerMul: number, forceMiss: boolean, forceFail: boolean, reason: string }>}
    */
   function promptChallenge(options = {}) {
@@ -358,7 +407,8 @@
 
     root.hidden = false;
     root.classList.add("show");
-    root.classList.remove("is-urgent");
+    root.classList.remove("is-urgent", "is-fx-playing");
+    setCardFxOut(false);
     updateTimerUi(cfg.timeLimit, cfg.timeLimit);
 
     return new Promise((resolve) => {
@@ -373,14 +423,29 @@
         raf: 0,
         onKey: null,
         urgent: false,
+        finishing: false,
+        targetUid: options.targetUid || null,
+        actorUid: options.actorUid || null,
       };
 
       const finish = (correct, timedOut) => {
-        if (!activeSession || activeSession.closed) return;
+        if (!activeSession || activeSession.closed || activeSession.finishing) return;
+        activeSession.finishing = true;
         const mod = buildResolveModifier(cfg.id, correct);
-        if (correct) playSfx("math_ok", 1);
-        else playSfx("math_fail", 1);
-        closeModal({
+        const targetUid = activeSession.targetUid;
+
+        // lock UI + stop timer/urgency before exit FX
+        stopUrgencyLoop();
+        setUrgencyVisual(false);
+        if (activeSession.raf) {
+          cancelAnimationFrame(activeSession.raf);
+          activeSession.raf = 0;
+        }
+        if (input) input.disabled = true;
+        if (submitBtn) submitBtn.disabled = true;
+        if (form) form.onsubmit = null;
+
+        const result = {
           correct,
           timedOut: !!timedOut,
           skipped: false,
@@ -390,6 +455,11 @@
           forceFail: mod.forceFail,
           reason: timedOut ? "timeout" : mod.reason,
           difficultyId: cfg.id,
+        };
+
+        // 音效 + 粒子由 ArcadeFX 按阶段播放；动画结束后再 resolve 给战斗引擎
+        playAnswerExitFx(correct, targetUid).finally(() => {
+          closeModal(result);
         });
       };
 

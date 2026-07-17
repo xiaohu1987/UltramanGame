@@ -151,6 +151,9 @@
       this.dirLayer = null;
       this.activeTrails = 0;
       this.maxActiveTrails = 8;
+      /** @type {null | object} 心算答对/答错离场特效状态 */
+      this.mathFx = null;
+      this.mathFxToken = 0;
     }
 
     init(options = {}) {
@@ -283,6 +286,9 @@
         p.rotation += p.spin * dt;
       }
 
+      // math answer fx sequence
+      this.updateMathAnswerFx(dt);
+
       // combo window
       if (this.combo > 0) {
         this.comboTimer -= dt * 1000;
@@ -337,6 +343,7 @@
         }
         this.ctx.restore();
       }
+      this.drawMathAnswerFx();
     }
 
     getAnchorRect(uid) {
@@ -1266,6 +1273,688 @@
           y: window.innerHeight * 0.8,
           power: 0.7,
         });
+      }
+    }
+
+    /**
+     * 心算答对/答错离场特效
+     * 答对：汇聚 → 光球 → 飞向目标 → 击中
+     * 答错：变黑 → 裂开 → 消失
+     * 音效阶段：
+     *  - 答对 gather: math_ok；fly: whoosh；hit: hit
+     *  - 答错 darken: math_fail；crack: noise
+     *  - 动画结束 onComplete / Promise resolve（含安全超时）
+     * @param {object} options
+     * @param {boolean} options.correct
+     * @param {DOMRect|{left:number,top:number,width:number,height:number}} options.sourceRect
+     * @param {{x:number,y:number}|null} [options.targetPoint]
+     * @param {string} [options.targetUid]
+     * @param {() => void} [options.onComplete]
+     * @returns {Promise<void>}
+     */
+    playMathAnswerFx(options = {}) {
+      this.init();
+      this.unlockAudio();
+
+      const correct = !!options.correct;
+      if (!correct) {
+        return this.playMathWrongFx(options);
+      }
+      return this.playMathCorrectFx(options);
+    }
+
+    cancelMathAnswerFx() {
+      if (!this.mathFx) return;
+      const cb = this.mathFx.onComplete;
+      const token = this.mathFx.token;
+      if (this.mathFx.safetyTimer) {
+        clearTimeout(this.mathFx.safetyTimer);
+        this.mathFx.safetyTimer = 0;
+      }
+      this.mathFx = null;
+      if (typeof cb === "function") {
+        try {
+          cb({ cancelled: true, token });
+        } catch (_) {
+          /* ignore */
+        }
+      }
+    }
+
+    playMathWrongFx(options = {}) {
+      const rect = options.sourceRect || {
+        left: window.innerWidth * 0.5 - 160,
+        top: window.innerHeight * 0.5 - 120,
+        width: 320,
+        height: 240,
+      };
+      const left = Number(rect.left) || 0;
+      const top = Number(rect.top) || 0;
+      const width = Math.max(40, Number(rect.width) || 200);
+      const height = Math.max(40, Number(rect.height) || 160);
+      const cx = left + width * 0.5;
+      const cy = top + height * 0.5;
+
+      if (this.mathFx && this.mathFx.active) {
+        this.cancelMathAnswerFx();
+      }
+
+      const token = ++this.mathFxToken;
+      const count = Math.max(16, Math.round(24 * this.perfScale));
+      const particles = [];
+      const cols = Math.max(3, Math.round(Math.sqrt(count * (width / Math.max(1, height)))));
+      const rows = Math.max(3, Math.ceil(count / cols));
+      let n = 0;
+      for (let r = 0; r < rows; r += 1) {
+        for (let c = 0; c < cols; c += 1) {
+          if (n >= count) break;
+          const px = left + ((c + 0.5) / cols) * width + (Math.random() - 0.5) * 6;
+          const py = top + ((r + 0.5) / rows) * height + (Math.random() - 0.5) * 6;
+          const ang = Math.atan2(py - cy, px - cx) + (Math.random() - 0.5) * 0.6;
+          const spd = 120 + Math.random() * 220;
+          particles.push({
+            x: px,
+            y: py,
+            ox: px,
+            oy: py,
+            vx: 0,
+            vy: 0,
+            burstVx: Math.cos(ang) * spd,
+            burstVy: Math.sin(ang) * spd - 40,
+            size: 4 + Math.random() * 7,
+            w: 6 + Math.random() * 10,
+            h: 5 + Math.random() * 9,
+            color: "#1a1f28",
+            baseColor: "#63d2ff",
+            glow: false,
+            spin: (Math.random() * 2 - 1) * 10,
+            rotation: Math.random() * Math.PI,
+            alpha: 1,
+            phase: Math.random(),
+          });
+          n += 1;
+        }
+      }
+
+      const onComplete = typeof options.onComplete === "function" ? options.onComplete : null;
+      const DARKEN = 0.28;
+      const CRACK = 0.44;
+      const FADE = 0.26;
+      const TOTAL = DARKEN + CRACK + FADE;
+      const SAFETY_MS = 1800;
+
+      this.mathFx = {
+        active: true,
+        correct: false,
+        token,
+        t: 0,
+        duration: TOTAL,
+        darkenDur: DARKEN,
+        crackDur: CRACK,
+        fadeDur: FADE,
+        source: { left, top, width, height, cx, cy },
+        target: null,
+        particles,
+        orb: null,
+        overlayAlpha: 0,
+        cardAlpha: 1,
+        stage: "darken",
+        cracked: false,
+        sfxFail: false,
+        onComplete,
+        safetyTimer: 0,
+      };
+
+      this.sfx("math_fail", 1);
+      this.mathFx.sfxFail = true;
+
+      return new Promise((resolve) => {
+        const state = this.mathFx;
+        if (!state || state.token !== token) {
+          resolve();
+          return;
+        }
+        const prev = state.onComplete;
+        state.onComplete = () => {
+          if (typeof prev === "function") prev();
+          resolve();
+        };
+        state.safetyTimer = setTimeout(() => {
+          if (this.mathFx && this.mathFx.token === token && this.mathFx.active) {
+            this.finishMathAnswerFx(token);
+          }
+        }, SAFETY_MS);
+      });
+    }
+
+    playMathCorrectFx(options = {}) {
+      const rect = options.sourceRect || {
+        left: window.innerWidth * 0.5 - 160,
+        top: window.innerHeight * 0.5 - 120,
+        width: 320,
+        height: 240,
+      };
+      const left = Number(rect.left) || 0;
+      const top = Number(rect.top) || 0;
+      const width = Math.max(40, Number(rect.width) || 200);
+      const height = Math.max(40, Number(rect.height) || 160);
+      const cx = left + width * 0.5;
+      const cy = top + height * 0.5;
+
+      let target = options.targetPoint;
+      if (!target || !Number.isFinite(target.x) || !Number.isFinite(target.y)) {
+        if (options.targetUid) target = this.centerOf(options.targetUid);
+      }
+      if (!target || !Number.isFinite(target.x) || !Number.isFinite(target.y)) {
+        target = { x: window.innerWidth * 0.5, y: window.innerHeight * 0.42 };
+      }
+
+      // cancel previous sequence
+      if (this.mathFx && this.mathFx.active) {
+        this.cancelMathAnswerFx();
+      }
+
+      const token = ++this.mathFxToken;
+      const colors = PALETTES.buff;
+      const count = Math.max(22, Math.round(42 * this.perfScale));
+      const particles = [];
+      for (let i = 0; i < count; i += 1) {
+        const px = left + Math.random() * width;
+        const py = top + Math.random() * height;
+        particles.push({
+          x: px,
+          y: py,
+          ox: px,
+          oy: py,
+          size: 2.4 + Math.random() * 4.2,
+          color: colors[i % colors.length],
+          glow: true,
+          spin: (Math.random() * 2 - 1) * 7,
+          rotation: Math.random() * Math.PI,
+          phase: Math.random(),
+        });
+      }
+
+      const onComplete = typeof options.onComplete === "function" ? options.onComplete : null;
+      const GATHER = 0.42;
+      const ORB = 0.16;
+      const FLY = 0.36;
+      const HIT = 0.48;
+      const TOTAL = GATHER + ORB + FLY + HIT;
+      const SAFETY_MS = 2600;
+
+      this.mathFx = {
+        active: true,
+        correct: true,
+        token,
+        t: 0,
+        duration: TOTAL,
+        gatherDur: GATHER,
+        orbDur: ORB,
+        flyDur: FLY,
+        hitDur: HIT,
+        source: { left, top, width, height, cx, cy },
+        target: { x: target.x, y: target.y },
+        targetUid: options.targetUid || null,
+        particles,
+        orb: { x: cx, y: cy, r: 6, alpha: 0, stretch: 1 },
+        rings: [],
+        blast: null,
+        sparks: [],
+        stage: "gather",
+        hitFired: false,
+        sfxGather: false,
+        sfxFly: false,
+        sfxHit: false,
+        onComplete,
+        safetyTimer: 0,
+      };
+
+      // gather sfx once
+      this.sfx("math_ok", 1);
+      this.mathFx.sfxGather = true;
+
+      return new Promise((resolve) => {
+        const state = this.mathFx;
+        if (!state || state.token !== token) {
+          resolve();
+          return;
+        }
+        const prev = state.onComplete;
+        state.onComplete = () => {
+          if (typeof prev === "function") prev();
+          resolve();
+        };
+        state.safetyTimer = setTimeout(() => {
+          if (this.mathFx && this.mathFx.token === token && this.mathFx.active) {
+            this.finishMathAnswerFx(token);
+          }
+        }, SAFETY_MS);
+      });
+    }
+
+    finishMathAnswerFx(token) {
+      if (!this.mathFx || this.mathFx.token !== token) return;
+      const cb = this.mathFx.onComplete;
+      if (this.mathFx.safetyTimer) {
+        clearTimeout(this.mathFx.safetyTimer);
+        this.mathFx.safetyTimer = 0;
+      }
+      this.mathFx.active = false;
+      this.mathFx = null;
+      if (typeof cb === "function") {
+        try {
+          cb();
+        } catch (_) {
+          /* ignore */
+        }
+      }
+    }
+
+    easeInOutCubic(t) {
+      const x = Math.max(0, Math.min(1, t));
+      return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+    }
+
+    updateMathAnswerFx(dt) {
+      const fx = this.mathFx;
+      if (!fx || !fx.active) return;
+
+      fx.t += dt;
+      const t = fx.t;
+      const gEnd = fx.gatherDur;
+      const oEnd = gEnd + fx.orbDur;
+      const fEnd = oEnd + fx.flyDur;
+      const hEnd = fEnd + fx.hitDur;
+
+      if (fx.correct) {
+        if (t <= gEnd) {
+          fx.stage = "gather";
+          const p = this.easeInOutCubic(t / gEnd);
+          for (let i = 0; i < fx.particles.length; i += 1) {
+            const pt = fx.particles[i];
+            pt.x = pt.ox + (fx.source.cx - pt.ox) * p;
+            pt.y = pt.oy + (fx.source.cy - pt.oy) * p;
+            pt.size = (2.2 + pt.phase * 3.6) * (1 - p * 0.55);
+            pt.rotation += pt.spin * dt;
+          }
+          fx.orb.x = fx.source.cx;
+          fx.orb.y = fx.source.cy;
+          fx.orb.r = 4 + p * 10;
+          fx.orb.alpha = 0.25 + p * 0.55;
+        } else if (t <= oEnd) {
+          fx.stage = "orb";
+          const p = (t - gEnd) / fx.orbDur;
+          for (let i = 0; i < fx.particles.length; i += 1) {
+            const pt = fx.particles[i];
+            pt.x += (fx.source.cx - pt.x) * Math.min(1, dt * 10);
+            pt.y += (fx.source.cy - pt.y) * Math.min(1, dt * 10);
+            pt.size *= 1 - dt * 3;
+          }
+          fx.orb.x = fx.source.cx;
+          fx.orb.y = fx.source.cy;
+          fx.orb.r = 16 + Math.sin(p * Math.PI) * 6;
+          fx.orb.alpha = 0.85 + p * 0.15;
+          fx.orb.stretch = 1;
+        } else if (t <= fEnd) {
+          fx.stage = "fly";
+          if (!fx.sfxFly) {
+            // stronger whoosh when orb launches
+            this.playNoise({ dur: 0.1, gain: 0.09 });
+            this.playTone({ freq: 420, dur: 0.12, type: "sine", gain: 0.08, slide: 320 });
+            this.playTone({ freq: 760, dur: 0.1, type: "triangle", gain: 0.06, delay: 0.02, slide: 220 });
+            fx.sfxFly = true;
+          }
+          // hard ease-in for snappier impact arrival
+          const raw = Math.max(0, Math.min(1, (t - oEnd) / fx.flyDur));
+          const p = raw * raw * raw * (1.35 - 0.35 * raw);
+          const sx = fx.source.cx;
+          const sy = fx.source.cy;
+          const tx = fx.target.x;
+          const ty = fx.target.y;
+          const midY = (sy + ty) * 0.5 - 60;
+          const bx = sx + (tx - sx) * p;
+          const by = (1 - p) * (1 - p) * sy + 2 * (1 - p) * p * midY + p * p * ty;
+          fx.orb.x = bx;
+          fx.orb.y = by;
+          fx.orb.r = 14 + (1 - p) * 7;
+          fx.orb.alpha = 1;
+          fx.orb.stretch = 1 + p * 0.95;
+          if (Math.random() < 0.95 * this.perfScale) {
+            const room = Math.max(0, MAX_PARTICLES - this.particles.length);
+            if (room > 0) {
+              this.particles.push({
+                x: bx + (Math.random() - 0.5) * 8,
+                y: by + (Math.random() - 0.5) * 8,
+                vx: (Math.random() - 0.5) * 110,
+                vy: (Math.random() - 0.5) * 110,
+                size: 2 + Math.random() * 3.8,
+                color: Math.random() > 0.45
+                  ? PALETTES.crit[Math.floor(Math.random() * PALETTES.crit.length)]
+                  : PALETTES.buff[Math.floor(Math.random() * PALETTES.buff.length)],
+                life: 0.28 + Math.random() * 0.22,
+                maxLife: 0.45,
+                gravity: 40,
+                rotation: Math.random() * Math.PI,
+                spin: (Math.random() * 2 - 1) * 4,
+                shape: "circle",
+                glow: true,
+              });
+            }
+          }
+          fx.particles.length = 0;
+        } else if (t <= hEnd) {
+          fx.stage = "hit";
+          if (!fx.hitFired) {
+            fx.hitFired = true;
+            fx.orb.alpha = 0;
+            const hx = fx.target.x;
+            const hy = fx.target.y;
+            // boom impact: multi-layer explosion + shockwave + heavy hit-stop
+            this.spawnParticles(hx, hy, Math.round(58 * this.perfScale), "crit", 1.85);
+            this.spawnParticles(hx, hy, Math.round(34 * this.perfScale), "hit", 1.55);
+            this.spawnParticles(hx, hy, Math.round(22 * this.perfScale), "ko", 1.35);
+            this.shakeScreen(16, 460);
+            this.flashScreen(0.72, "255,248,210");
+            this.hitStopFor(120);
+            if (fx.targetUid) {
+              const card =
+                document.querySelector(`.unit-card[data-uid="${fx.targetUid}"]`) ||
+                document.querySelector(`[data-uid="${fx.targetUid}"]`);
+              if (card) this.pulseDom(card, "hit-crit", 720);
+              this.spawnBurstOn(fx.targetUid, "crit");
+            }
+            const stage = document.querySelector(".battle-stage") || document.querySelector("#battle-stage");
+            if (stage) this.pulseDom(stage, "impact", 760);
+            fx.blast = {
+              x: hx,
+              y: hy,
+              r: 10,
+              maxR: 150,
+              alpha: 1,
+              core: 1,
+            };
+            fx.rings = [
+              { x: hx, y: hy, r: 10, maxR: 92, alpha: 1, width: 7, color: "rgba(255,250,210,0.98)" },
+              { x: hx, y: hy, r: 6, maxR: 140, alpha: 0.9, width: 4.5, color: "rgba(255,180,90,0.95)" },
+              { x: hx, y: hy, r: 3, maxR: 190, alpha: 0.75, width: 3, color: "rgba(120,210,255,0.9)" },
+              { x: hx, y: hy, r: 1, maxR: 240, alpha: 0.5, width: 2, color: "rgba(255,255,255,0.75)" },
+            ];
+            fx.sparks = [];
+            const sparkN = Math.max(10, Math.round(18 * this.perfScale));
+            for (let i = 0; i < sparkN; i += 1) {
+              const ang = (Math.PI * 2 * i) / sparkN + Math.random() * 0.35;
+              const spd = 220 + Math.random() * 340;
+              fx.sparks.push({
+                x: hx,
+                y: hy,
+                vx: Math.cos(ang) * spd,
+                vy: Math.sin(ang) * spd - 40,
+                life: 0.28 + Math.random() * 0.22,
+                maxLife: 0.5,
+                size: 2.2 + Math.random() * 3.4,
+                color: i % 2 === 0 ? "#fff4b0" : "#ff8a4c",
+              });
+            }
+            this.showFloatGlobal("BOOM!", "crit", hx, hy - 24, 1.45);
+            this.showFloatGlobal("HIT!", "crit", hx + 18, hy + 10, 1.05);
+            if (!fx.sfxHit) {
+              // layered boom: noise + low boom + high crack
+              this.playNoise({ dur: 0.16, gain: 0.22 });
+              this.playNoise({ dur: 0.1, gain: 0.14, delay: 0.04 });
+              this.playTone({ freq: 90, dur: 0.22, type: "sawtooth", gain: 0.18, slide: -50 });
+              this.playTone({ freq: 160, dur: 0.16, type: "square", gain: 0.14, delay: 0.02, slide: -70 });
+              this.playTone({ freq: 720, dur: 0.1, type: "triangle", gain: 0.1, delay: 0.01, slide: 180 });
+              this.sfx("crit", 1.25);
+              this.sfx("hit", 1.05);
+              this.sfx("ko", 0.75);
+              fx.sfxHit = true;
+            }
+          }
+          // evolve blast core
+          if (fx.blast) {
+            const bp = Math.max(0, Math.min(1, (t - fEnd) / Math.max(0.001, fx.hitDur)));
+            fx.blast.r = 10 + bp * fx.blast.maxR;
+            fx.blast.alpha = Math.max(0, 1 - bp * 1.15);
+            fx.blast.core = Math.max(0, 1 - bp * 1.6);
+            if (fx.blast.alpha <= 0.02) fx.blast = null;
+          }
+          // radial sparks
+          if (fx.sparks && fx.sparks.length) {
+            for (let i = fx.sparks.length - 1; i >= 0; i -= 1) {
+              const sp = fx.sparks[i];
+              sp.life -= dt;
+              if (sp.life <= 0) {
+                fx.sparks.splice(i, 1);
+                continue;
+              }
+              sp.x += sp.vx * dt;
+              sp.y += sp.vy * dt;
+              sp.vx *= 1 - 1.8 * dt;
+              sp.vy *= 1 - 0.6 * dt;
+              sp.vy += 180 * dt;
+            }
+          }
+          if (fx.rings && fx.rings.length) {
+            for (let i = fx.rings.length - 1; i >= 0; i -= 1) {
+              const ring = fx.rings[i];
+              ring.r += (ring.maxR - ring.r) * Math.min(1, dt * 11) + 140 * dt;
+              ring.alpha = Math.max(0, ring.alpha - dt * 2.1);
+              ring.width = Math.max(0.5, ring.width * (1 - dt * 1.5));
+              if (ring.alpha <= 0.02 || ring.r >= ring.maxR) {
+                fx.rings.splice(i, 1);
+              }
+            }
+          }
+        } else {
+          this.finishMathAnswerFx(fx.token);
+        }
+      } else {
+        // wrong: darken → crack → fade
+        const dEnd = fx.darkenDur;
+        const cEnd = dEnd + fx.crackDur;
+        const fEnd = cEnd + fx.fadeDur;
+        if (t <= dEnd) {
+          fx.stage = "darken";
+          const p = Math.max(0, Math.min(1, t / dEnd));
+          fx.overlayAlpha = p * 0.72;
+          fx.cardAlpha = 1 - p * 0.15;
+          for (let i = 0; i < fx.particles.length; i += 1) {
+            const pt = fx.particles[i];
+            // lerp color toward near-black
+            const shade = Math.round(30 + (1 - p) * 80);
+            pt.color = `rgb(${shade},${shade + 4},${shade + 10})`;
+            pt.alpha = 0.55 + p * 0.45;
+            pt.x = pt.ox + (Math.random() - 0.5) * p * 1.2;
+            pt.y = pt.oy + (Math.random() - 0.5) * p * 1.2;
+          }
+        } else if (t <= cEnd) {
+          fx.stage = "crack";
+          if (!fx.cracked) {
+            fx.cracked = true;
+            fx.overlayAlpha = 0;
+            this.shakeScreen(3, 180);
+            this.playNoise({ dur: 0.05, gain: 0.08 });
+            for (let i = 0; i < fx.particles.length; i += 1) {
+              const pt = fx.particles[i];
+              pt.vx = pt.burstVx;
+              pt.vy = pt.burstVy;
+              pt.color = `rgb(${20 + Math.floor(Math.random() * 24)},${22 + Math.floor(Math.random() * 20)},${28 + Math.floor(Math.random() * 22)})`;
+            }
+          }
+          const p = (t - dEnd) / fx.crackDur;
+          for (let i = 0; i < fx.particles.length; i += 1) {
+            const pt = fx.particles[i];
+            pt.vy += 380 * dt;
+            pt.x += pt.vx * dt;
+            pt.y += pt.vy * dt;
+            pt.vx *= 1 - 0.8 * dt;
+            pt.rotation += pt.spin * dt;
+            pt.alpha = Math.max(0, 1 - p * 0.35);
+          }
+        } else if (t <= fEnd) {
+          fx.stage = "fade";
+          const p = (t - cEnd) / fx.fadeDur;
+          for (let i = 0; i < fx.particles.length; i += 1) {
+            const pt = fx.particles[i];
+            pt.vy += 420 * dt;
+            pt.x += pt.vx * dt;
+            pt.y += pt.vy * dt;
+            pt.rotation += pt.spin * dt;
+            pt.alpha = Math.max(0, 0.65 * (1 - p));
+            pt.w *= 1 - dt * 1.2;
+            pt.h *= 1 - dt * 1.2;
+          }
+        } else {
+          // ensure no residue
+          fx.particles.length = 0;
+          this.finishMathAnswerFx(fx.token);
+        }
+      }
+    }
+
+    drawMathAnswerFx() {
+      const fx = this.mathFx;
+      if (!fx || !fx.active || !this.ctx) return;
+      const ctx = this.ctx;
+
+      // wrong-path darken overlay over source card area
+      if (!fx.correct && fx.stage === "darken" && fx.source) {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, Math.min(1, fx.overlayAlpha || 0));
+        ctx.fillStyle = "rgba(4, 6, 10, 0.92)";
+        const { left, top, width, height } = fx.source;
+        const r = 16;
+        ctx.beginPath();
+        if (ctx.roundRect) {
+          ctx.roundRect(left, top, width, height, r);
+        } else {
+          ctx.rect(left, top, width, height);
+        }
+        ctx.fill();
+        ctx.restore();
+      }
+
+      for (let i = 0; i < fx.particles.length; i += 1) {
+        const p = fx.particles[i];
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rotation || 0);
+        ctx.globalAlpha = Math.max(0, Math.min(1, p.alpha != null ? p.alpha : 0.85));
+        ctx.fillStyle = p.color;
+        if (!fx.correct) {
+          // shard fragments
+          const w = Math.max(1, p.w || p.size * 1.6);
+          const h = Math.max(1, p.h || p.size);
+          ctx.beginPath();
+          ctx.moveTo(-w * 0.5, -h * 0.35);
+          ctx.lineTo(w * 0.45, -h * 0.5);
+          ctx.lineTo(w * 0.55, h * 0.4);
+          ctx.lineTo(-w * 0.35, h * 0.55);
+          ctx.closePath();
+          ctx.fill();
+        } else {
+          ctx.beginPath();
+          ctx.arc(0, 0, Math.max(0.5, p.size), 0, Math.PI * 2);
+          ctx.fill();
+          if (p.glow) {
+            ctx.globalAlpha = 0.28;
+            ctx.beginPath();
+            ctx.arc(0, 0, Math.max(1, p.size * 2.1), 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+        ctx.restore();
+      }
+
+      if (fx.orb && fx.orb.alpha > 0.02) {
+        const { x, y, r, alpha } = fx.orb;
+        const stretch = Math.max(1, fx.orb.stretch || 1);
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
+        ctx.translate(x, y);
+        ctx.scale(stretch, 1 / Math.sqrt(stretch));
+        const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, r * 2.6);
+        grad.addColorStop(0, "rgba(255,255,255,0.95)");
+        grad.addColorStop(0.28, "rgba(255,244,190,0.95)");
+        grad.addColorStop(0.55, "rgba(154,215,255,0.85)");
+        grad.addColorStop(0.82, "rgba(47,155,255,0.4)");
+        grad.addColorStop(1, "rgba(47,155,255,0)");
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(0, 0, r * 2.6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "rgba(255,255,255,0.95)";
+        ctx.beginPath();
+        ctx.arc(0, 0, Math.max(2, r * 0.58), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // explosion core / fireball
+      if (fx.blast && fx.blast.alpha > 0.02) {
+        const b = fx.blast;
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, Math.min(1, b.alpha));
+        const outer = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, b.r);
+        outer.addColorStop(0, "rgba(255,255,255,0.95)");
+        outer.addColorStop(0.18, "rgba(255,244,180,0.9)");
+        outer.addColorStop(0.42, "rgba(255,140,60,0.7)");
+        outer.addColorStop(0.72, "rgba(255,70,40,0.28)");
+        outer.addColorStop(1, "rgba(255,70,40,0)");
+        ctx.fillStyle = outer;
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, Math.max(1, b.r), 0, Math.PI * 2);
+        ctx.fill();
+        if (b.core > 0.02) {
+          ctx.globalAlpha = Math.max(0, Math.min(1, b.core));
+          ctx.fillStyle = "rgba(255,255,255,0.95)";
+          ctx.beginPath();
+          ctx.arc(b.x, b.y, Math.max(2, 10 + b.core * 18), 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+
+      // radial sparks
+      if (fx.sparks && fx.sparks.length) {
+        for (let i = 0; i < fx.sparks.length; i += 1) {
+          const sp = fx.sparks[i];
+          if (!sp || sp.life <= 0) continue;
+          const a = Math.max(0, Math.min(1, sp.life / Math.max(0.001, sp.maxLife || 0.5)));
+          ctx.save();
+          ctx.globalAlpha = a;
+          ctx.fillStyle = sp.color || "#fff4b0";
+          ctx.beginPath();
+          ctx.arc(sp.x, sp.y, Math.max(0.8, sp.size * a), 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = a * 0.35;
+          ctx.beginPath();
+          ctx.arc(sp.x, sp.y, Math.max(1.2, sp.size * 2.2 * a), 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+
+      if (fx.rings && fx.rings.length) {
+        for (let i = 0; i < fx.rings.length; i += 1) {
+          const ring = fx.rings[i];
+          if (!ring || ring.alpha <= 0.02) continue;
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, Math.min(1, ring.alpha));
+          ctx.strokeStyle = ring.color || (i === 0 ? "rgba(255,244,180,0.95)" : "rgba(154,215,255,0.9)");
+          ctx.lineWidth = Math.max(0.8, ring.width || 2);
+          ctx.beginPath();
+          ctx.arc(ring.x, ring.y, Math.max(1, ring.r), 0, Math.PI * 2);
+          ctx.stroke();
+          // soft outer bloom
+          ctx.globalAlpha = Math.max(0, Math.min(0.35, ring.alpha * 0.45));
+          ctx.lineWidth = Math.max(1, (ring.width || 2) * 2.2);
+          ctx.beginPath();
+          ctx.arc(ring.x, ring.y, Math.max(1, ring.r * 1.05), 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        }
       }
     }
   }

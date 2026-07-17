@@ -332,12 +332,15 @@
       }
 
       this.onUpdate(this.snapshot());
+      // 传入 targetUid 供答对光球落点；特效结束后再结算技能
       this.onLog(`${actor.name} 心算准备中…`);
 
       window.MathChallenge.promptChallenge({
         difficultyId: this.difficulty,
         skillName: skill.name,
         actorName: actor.name,
+        actorUid: actor ? actor.uid : null,
+        targetUid: target ? target.uid : null,
       })
         .then((challenge) => {
           if (this.phase === PHASE.ENDED) return;
