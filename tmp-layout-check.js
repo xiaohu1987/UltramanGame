@@ -12,8 +12,9 @@ const checks = {
   selectedSlots: html.includes('id="selected-slots"'),
   threeSlots: (html.match(/class="selected-slot/g) || []).length >= 3,
   toolbarBetween:
-    html.indexOf("selected-slots") < html.indexOf("select-toolbar") &&
-    html.indexOf("select-toolbar") < html.indexOf("hero-grid"),
+    html.indexOf("select-toolbar") < html.indexOf("selected-slots") &&
+    html.indexOf("selected-slots") < html.indexOf("hero-grid") &&
+    html.includes("select-merged-bar"),
   thumbGrid: html.includes("select-thumb-grid"),
   currentActor: html.includes('id="current-actor"'),
   battleLog: html.includes('id="battle-log"'),

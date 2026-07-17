@@ -10,17 +10,65 @@
 }
 
 #screen-select .select-hero-copy h2 {
-  font-size: 1.28rem;
+  font-size: 1rem;
+  line-height: 1.15;
 }
 
 #screen-select .select-hero-copy p {
-  font-size: 0.92rem;
+  font-size: 0.74rem;
+  line-height: 1.2;
 }
 
 #screen-select .select-filter-hint {
   font-size: 0.9rem;
   font-weight: 700;
   color: #d7f0ff;
+}
+
+#screen-select .select-merged-bar {
+  gap: 10px;
+  padding: 6px 10px;
+}
+
+#screen-select .select-merged-bar .select-status-text {
+  margin-top: 0;
+  font-size: 0.74rem;
+  line-height: 1.2;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+#screen-select .select-merged-right {
+  gap: 8px;
+  align-items: center;
+}
+
+/* 覆盖全局 .btn.primary 更大尺寸，并取消 panel-actions 下沉 */
+#screen-select .select-merged-bar .select-actions,
+#screen-select .select-merged-bar .select-actions.panel-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  height: 40px;
+  min-height: 40px;
+}
+
+#screen-select .select-merged-bar .select-progress,
+#screen-select .select-merged-bar .select-actions .btn,
+#screen-select .select-merged-bar .select-actions .btn.primary {
+  min-height: 40px;
+  height: 40px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  padding: 0 14px;
+}
+
+#screen-select .select-merged-bar .select-actions .btn.primary {
+  min-width: 84px;
+  padding: 0 16px;
 }
 
 #screen-select .selected-slots {

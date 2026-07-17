@@ -65,9 +65,131 @@ body {
   min-height: 0;
   height: 100%;
   display: grid;
-  grid-template-rows: auto auto auto minmax(0, 1fr);
-  gap: 10px;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 8px;
   overflow: hidden;
+}
+
+#screen-select .select-hero-head {
+  min-height: 0;
+  align-items: center;
+  gap: 10px;
+}
+
+#screen-select .select-merged-bar {
+  min-height: 0;
+  gap: 10px;
+  padding: 6px 10px;
+}
+
+#screen-select .select-merged-right {
+  gap: 8px;
+  align-items: center;
+}
+
+#screen-select .select-hero-copy h2 {
+  margin: 0 0 2px;
+  font-size: 1rem;
+  line-height: 1.15;
+}
+
+#screen-select .select-hero-copy p {
+  margin: 0;
+  font-size: 0.74rem;
+  line-height: 1.2;
+}
+
+/* 进度与按钮统一高度，避免一大一小 */
+#screen-select .select-merged-bar .select-progress,
+#screen-select .select-merged-bar .select-actions .btn {
+  box-sizing: border-box;
+  min-height: 40px;
+  height: 40px;
+  border-radius: 12px;
+}
+
+#screen-select .select-progress,
+#screen-select .select-merged-bar .select-progress {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  min-width: 108px;
+  max-width: 124px;
+  padding: 6px 12px;
+}
+
+#screen-select .select-progress-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+#screen-select .select-progress-label {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1;
+}
+
+#screen-select .select-progress-count {
+  font-size: 0.98rem;
+  line-height: 1;
+}
+
+#screen-select .select-progress-total {
+  font-size: 0.78rem;
+}
+
+#screen-select .select-progress-track {
+  margin-top: 0;
+  height: 4px;
+}
+
+#screen-select .select-status-text {
+  margin-top: 2px;
+  font-size: 0.64rem;
+  line-height: 1.15;
+}
+
+#screen-select .select-merged-bar .select-status-text {
+  margin-top: 0;
+  font-size: 0.72rem;
+  line-height: 1.2;
+}
+
+/* 取消 .panel-actions 的 margin-top，保证进度与按钮同一水平线 */
+#screen-select .select-merged-bar .select-actions,
+#screen-select .select-merged-bar .select-actions.panel-actions,
+#screen-select .select-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-end;
+  margin: 0;
+  padding: 0;
+  height: 40px;
+  min-height: 40px;
+}
+
+#screen-select .select-actions .btn,
+#screen-select .select-merged-bar .select-actions .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 76px;
+  min-height: 40px;
+  height: 40px;
+  padding: 0 14px;
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
+#screen-select .select-merged-bar .select-actions .btn.primary {
+  min-width: 84px;
+  padding: 0 16px;
 }
 
 #screen-select .selected-slots {

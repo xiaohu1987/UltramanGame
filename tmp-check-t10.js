@@ -15,8 +15,9 @@ const checks = {
   // 选角链路
   selectSlots: html.includes('id="selected-slots"') && (html.match(/class="selected-slot/g) || []).length >= 3,
   selectToolbarBetween:
-    html.indexOf("selected-slots") < html.indexOf("select-toolbar") &&
-    html.indexOf("select-toolbar") < html.indexOf("hero-grid"),
+    html.indexOf("select-toolbar") < html.indexOf("selected-slots") &&
+    html.indexOf("selected-slots") < html.indexOf("hero-grid") &&
+    html.includes("select-merged-bar"),
   selectThumbs: html.includes("select-thumb-grid") && ui.includes("function renderSelectScreen"),
   selectToggle: main.includes("function toggleHero") && ui.includes("handlers.onToggle"),
   selectRandomClear:

@@ -32,18 +32,27 @@
 
     <main id="screen-select" class="screen active">
       <section class="panel select-main-panel">
-        <div class="panel-head select-hero-head">
+        <!-- 标题 + 进度 + 操作：合并成一行，腾出纵向空间 -->
+        <div class="panel-head select-hero-head select-toolbar select-merged-bar">
           <div class="select-hero-copy">
             <h2>点下面小图选奥特曼</h2>
-            <p>上面 3 个大框是你的队伍，选满就能开战</p>
+            <p id="select-status-text" class="select-status-text">先点下面小图选 3 个奥特曼</p>
           </div>
-          <div class="select-progress" aria-live="polite">
-            <div class="select-progress-label">已选</div>
-            <div class="select-progress-count"><span id="select-count">0</span><span class="select-progress-total">/3</span></div>
-            <div class="select-progress-track" aria-hidden="true">
-              <span id="select-progress-fill" class="select-progress-fill" style="width: 0%"></span>
+          <div class="select-merged-right">
+            <div class="select-progress" aria-live="polite">
+              <div class="select-progress-meta">
+                <span class="select-progress-label">已选</span>
+                <span class="select-progress-count"><span id="select-count">0</span><span class="select-progress-total">/3</span></span>
+              </div>
+              <div class="select-progress-track" aria-hidden="true">
+                <span id="select-progress-fill" class="select-progress-fill" style="width: 0%"></span>
+              </div>
             </div>
-            <div id="select-status-text" class="select-status-text">再选 3 个</div>
+            <div class="panel-actions select-actions">
+              <button id="btn-random" class="btn ghost accent" type="button">🎲 随机</button>
+              <button id="btn-clear" class="btn ghost" type="button">清空</button>
+              <button id="btn-start" class="btn primary" type="button" disabled>开战！</button>
+            </div>
           </div>
         </div>
 
@@ -66,16 +75,6 @@
             <div class="selected-slot-body">
               <div class="selected-slot-empty">空位</div>
             </div>
-          </div>
-        </div>
-
-        <!-- 中：操作按钮 -->
-        <div class="select-toolbar">
-          <div class="select-filter-hint">点下面小图选人 · 再点可取消</div>
-          <div class="panel-actions select-actions">
-            <button id="btn-random" class="btn ghost accent" type="button">🎲 随机</button>
-            <button id="btn-clear" class="btn ghost" type="button">清空</button>
-            <button id="btn-start" class="btn primary" type="button" disabled>开战！</button>
           </div>
         </div>
 
