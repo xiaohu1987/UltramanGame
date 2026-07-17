@@ -105,10 +105,9 @@
   position: relative;
   display: grid;
   grid-template-columns: minmax(240px, 0.95fr) minmax(400px, 1.6fr) minmax(240px, 0.95fr);
-  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-rows: minmax(0, 1fr);
   grid-template-areas:
-    "ally center enemy"
-    "ally center actions";
+    "ally center enemy";
   gap: clamp(14px, 2vw, 30px) !important;
   width: min(1440px, 100%);
   margin: 0 auto;
@@ -364,7 +363,18 @@
 }
 
 #screen-battle .battle-log-wrap {
-  min-height: 84px;
+  grid-area: auto;
+  min-height: 0;
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid rgba(120, 204, 251, 0.28);
+  border-radius: 8px;
+  background: rgba(6, 18, 31, 0.9);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
 }
 
 #screen-battle .battle-log-label {
@@ -375,12 +385,14 @@
 }
 
 #screen-battle .battle-log {
-  height: 76px;
+  min-height: 0;
+  height: 100%;
   padding: 7px;
   border-radius: 5px;
   border: 1px solid rgba(121, 198, 239, 0.13);
   background: rgba(2, 9, 17, 0.44);
   font-size: 0.67rem;
+  overflow: auto;
 }
 
 #screen-battle .battle-center {
@@ -469,71 +481,159 @@
 
 #screen-battle .battle-info-panel { display: none; }
 
+/* Compact skill panel: fit actor info + 3 skills without scrollbars. */
 #screen-battle .action-bar {
   display: grid;
-  grid-area: actions;
-  grid-template-columns: minmax(122px, 0.6fr) minmax(0, 2.4fr);
-  grid-template-rows: auto;
-  gap: 10px;
-  min-height: 112px;
-  height: auto;
-  padding: 10px;
+  grid-area: auto;
+  grid-template-columns: 1fr;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 8px;
+  min-height: 0;
+  height: 100%;
+  padding: 8px;
   border: 1px solid rgba(120, 204, 251, 0.28);
-  border-radius: 8px;
-  background: rgba(6, 18, 31, 0.9);
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(12, 34, 54, 0.96), rgba(5, 15, 27, 0.96));
   box-shadow: 0 14px 32px rgba(0,0,0,.25);
-  overflow: visible;
+  overflow: hidden;
 }
 
 #screen-battle .action-meta {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: center;
-  gap: 7px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
   margin: 0;
+  padding: 0 2px;
 }
 
-#screen-battle .actor-info { font-size: 0.75rem; }
-#screen-battle .action-tools { display: grid; gap: 5px; }
-#screen-battle .target-hint { min-height: 1em; font-size: 0.67rem; }
-#screen-battle .btn.auto-toggle { min-height: 28px; padding: 4px 8px; font-size: 0.68rem; }
+#screen-battle .actor-info {
+  min-width: 0;
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#screen-battle .action-tools {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 0;
+}
+
+#screen-battle .target-hint {
+  min-height: 0;
+  max-width: 9em;
+  padding: 3px 8px;
+  font-size: 0.62rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#screen-battle .btn.auto-toggle {
+  min-height: 28px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  white-space: nowrap;
+}
 
 #screen-battle .skill-buttons {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  grid-template-rows: minmax(82px, 1fr);
-  height: auto;
-  gap: 8px;
+  grid-template-columns: 1fr;
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  min-height: 0;
+  height: 100%;
+  gap: 6px;
+  overflow: hidden;
 }
 
-#screen-battle .skill-owner { display: none; }
+#screen-battle .skill-owner,
+#screen-battle .auto-skill-tip {
+  display: none !important;
+}
 
 #screen-battle .skill-btn {
-  height: auto;
-  min-height: 82px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "icon name meta"
+    "icon desc desc";
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 2px;
+  min-height: 0;
+  height: 100%;
   max-height: none;
-  padding: 8px;
+  padding: 7px 9px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+#screen-battle .skill-btn .skill-head {
+  display: contents;
+}
+
+#screen-battle .skill-btn .skill-icon {
+  grid-area: icon;
+  width: 1.45em;
+  min-width: 1.45em;
+  height: 1.45em;
+  font-size: 0.84rem;
   border-radius: 6px;
 }
 
-#screen-battle .skill-btn .skill-head { gap: 6px; }
-#screen-battle .skill-btn .skill-icon { width: 1.65em; min-width: 1.65em; height: 1.65em; font-size: 0.92rem; border-radius: 5px; }
-#screen-battle .skill-btn .skill-name { font-size: 0.78rem; }
-#screen-battle .skill-btn .skill-meta { padding-left: 0; font-size: 0.67rem; }
+#screen-battle .skill-btn .skill-name {
+  grid-area: name;
+  min-width: 0;
+  font-size: 0.76rem;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#screen-battle .skill-btn .skill-meta {
+  grid-area: meta;
+  justify-self: end;
+  margin: 0;
+  padding: 0;
+  font-size: 0.62rem;
+  line-height: 1.1;
+  white-space: nowrap;
+}
 
 #screen-battle .skill-btn .skill-desc {
-  grid-column: 1 / -1;
-  min-height: 2.4em;
+  grid-area: desc;
+  min-height: 0;
+  margin: 0;
   overflow: hidden;
   color: #8fa9bc;
-  font-size: 0.61rem;
-  line-height: 1.2;
+  font-size: 0.58rem;
+  line-height: 1.15;
   text-align: left;
   text-overflow: ellipsis;
-  display: -webkit-box !important;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  white-space: nowrap;
+  display: block !important;
+  -webkit-line-clamp: unset;
+  -webkit-box-orient: unset;
+}
+
+#screen-battle #btn-cancel-target {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  clip: rect(0 0 0 0);
+  overflow: hidden;
 }
 
 #screen-battle .fighter-card.current {
@@ -546,7 +646,7 @@
   #screen-battle .battle-field,
   #screen-battle .battle-field.four-columns,
   #screen-battle .battle-field.vertical-stack {
-    grid-template-rows: minmax(0, 1fr) clamp(176px, 20dvh, 220px);
+    grid-template-rows: minmax(0, 1fr);
   }
 
   #screen-battle .team-column.enemy {
@@ -555,7 +655,7 @@
     align-self: stretch;
   }
 
-  #screen-battle .action-bar {
+  #screen-battle .battle-log-wrap {
     min-height: 0;
     height: 100%;
     overflow: auto;
@@ -568,10 +668,9 @@
   #screen-battle .battle-field.four-columns,
   #screen-battle .battle-field.vertical-stack {
     grid-template-columns: 1fr;
-    grid-template-rows: auto auto auto auto;
+    grid-template-rows: auto auto auto;
     grid-template-areas:
       "enemy"
-      "actions"
       "center"
       "ally";
     gap: 12px !important;
@@ -581,6 +680,44 @@
   #screen-battle .team-column { min-height: 230px; }
   #screen-battle .team-row { min-height: 150px; }
   #screen-battle .battle-center { min-height: 430px; }
+  #screen-battle .action-bar {
+    height: auto;
+    overflow: visible;
+  }
+  #screen-battle .action-meta {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  #screen-battle .action-tools {
+    justify-content: flex-start;
+  }
+  #screen-battle .skill-buttons {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: auto;
+    height: auto;
+    overflow: hidden;
+  }
+  #screen-battle .skill-btn {
+    min-height: 72px;
+    height: auto;
+    max-height: none;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      "icon name"
+      "meta meta"
+      "desc desc";
+  }
+  #screen-battle .skill-btn .skill-meta {
+    justify-self: start;
+  }
+  #screen-battle .battle-log-wrap {
+    min-height: 120px;
+  }
+  #screen-battle .battle-log {
+    min-height: 96px;
+    max-height: 180px;
+    height: auto;
+  }
 }
 
 @media (max-width: 520px) {
@@ -588,8 +725,15 @@
   #screen-battle .team-column { padding: 8px; }
   #screen-battle .current-actor-avatar { width: min(220px, 74%); }
   #screen-battle .action-bar { grid-template-columns: 1fr; }
-  #screen-battle .skill-buttons { grid-template-columns: repeat(3, minmax(84px, 1fr)); overflow-x: auto; }
-  #screen-battle .skill-btn { min-width: 84px; }
+  #screen-battle .skill-buttons {
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(3, minmax(0, 1fr));
+    overflow: hidden;
+  }
+  #screen-battle .skill-btn {
+    min-width: 0;
+    min-height: 58px;
+  }
 }
 
 /* Selected heroes: show the decision-critical stats and skills beside the portrait. */

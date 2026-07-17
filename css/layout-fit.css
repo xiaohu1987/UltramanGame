@@ -156,7 +156,7 @@ body {
   color: #ff8a95;
 }
 
-/* 紧凑角色卡：图片 + 底部血条，竖向 3 人 */
+/* 紧凑角色卡：图片 + 底部信息条，竖向 3 人 */
 .team-row {
   display: grid;
   grid-template-columns: 1fr;
@@ -336,7 +336,7 @@ body {
   min-height: 0;
   height: 100%;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr);
   gap: 8px;
   border-radius: 16px;
   background:
@@ -351,8 +351,9 @@ body {
 .action-meta {
   margin-bottom: 0;
   gap: 8px;
-  flex-direction: column;
-  align-items: stretch;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .actor-info {
@@ -365,11 +366,12 @@ body {
 
 .skill-buttons {
   grid-template-columns: 1fr;
-  grid-template-rows: auto repeat(3, minmax(64px, 1fr));
+  grid-template-rows: repeat(3, minmax(0, 1fr));
   gap: 6px;
   align-items: stretch;
   min-height: 0;
   height: 100%;
+  overflow: hidden;
 }
 
 .skill-owner {
@@ -386,7 +388,7 @@ body {
 .skill-btn {
   min-height: 0;
   height: 100%;
-  max-height: 108px;
+  max-height: none;
   padding: 8px 10px;
   border-radius: 12px;
   background:
@@ -402,7 +404,7 @@ body {
 }
 
 .skill-btn .skill-meta {
-  padding-left: calc(1.9em + 10px);
+  padding-left: 0;
   font-size: 0.72rem;
 }
 
@@ -415,7 +417,7 @@ body {
 }
 
 .skill-desc {
-  display: none;
+  display: block;
 }
 
 .btn.auto-toggle {
@@ -470,9 +472,10 @@ body {
   }
 
   .skill-buttons {
-    grid-template-columns: minmax(120px, 0.7fr) repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     grid-template-rows: auto;
     height: auto;
+    overflow: hidden;
   }
 
   .skill-btn {
@@ -530,7 +533,9 @@ body {
   }
 
   .skill-desc {
-    display: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .current-actor-avatar {
@@ -545,16 +550,22 @@ body {
   #screen-battle .battle-field.four-columns,
   #screen-battle .battle-field.vertical-stack {
     grid-template-columns: minmax(300px, 1fr) minmax(320px, 1.1fr) minmax(300px, 1fr);
+    grid-template-rows: minmax(0, 1fr);
     gap: 12px;
-  }
-
-  #screen-battle .action-bar {
-    grid-column: 1 / -1;
-    grid-row: 2;
   }
 
   #screen-battle .team-column,
   #screen-battle .battle-center {
     grid-row: 1;
+  }
+
+  #screen-battle .team-column.ally .action-bar,
+  #screen-battle .team-column.enemy .battle-log-wrap {
+    min-height: 180px;
+    height: 100%;
+  }
+
+  #screen-battle .team-column.ally .skill-buttons {
+    overflow: hidden;
   }
 }

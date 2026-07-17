@@ -99,10 +99,20 @@
             <span class="team-sub">我方</span>
           </div>
           <div id="ally-team" class="team-row"></div>
-          <div class="battle-log-wrap">
-            <div class="battle-log-label">战斗信息</div>
-            <div id="battle-log" class="battle-log" aria-live="polite"></div>
-          </div>
+          <section class="action-bar battle-row" aria-label="战斗操作">
+            <div class="action-meta">
+              <div id="actor-info" class="actor-info">准备出手</div>
+              <div class="action-tools">
+                <div id="target-hint" class="target-hint"></div>
+                <button id="btn-auto-battle" class="btn ghost auto-toggle" type="button" aria-pressed="false">
+                  <span class="auto-dot" aria-hidden="true"></span>
+                  <span id="auto-battle-label">自动：关</span>
+                </button>
+              </div>
+            </div>
+            <div id="skill-buttons" class="skill-buttons"></div>
+            <button id="btn-cancel-target" class="btn ghost" type="button" hidden>取消</button>
+          </section>
         </div>
 
         <!-- 2. 当前人物与战斗舞台（中左） -->
@@ -137,22 +147,11 @@
             <span class="team-sub">敌方</span>
           </div>
           <div id="enemy-team" class="team-row"></div>
-        </div>
-
-        <section class="action-bar battle-row" aria-label="战斗操作">
-          <div class="action-meta">
-            <div id="actor-info" class="actor-info">准备出手</div>
-            <div class="action-tools">
-              <div id="target-hint" class="target-hint"></div>
-              <button id="btn-auto-battle" class="btn ghost auto-toggle" type="button" aria-pressed="false">
-                <span class="auto-dot" aria-hidden="true"></span>
-                <span id="auto-battle-label">自动：关</span>
-              </button>
-            </div>
+          <div class="battle-log-wrap battle-row" aria-label="战斗信息">
+            <div class="battle-log-label">战斗信息</div>
+            <div id="battle-log" class="battle-log" aria-live="polite"></div>
           </div>
-          <div id="skill-buttons" class="skill-buttons"></div>
-          <button id="btn-cancel-target" class="btn ghost" type="button" hidden>取消</button>
-        </section>
+        </div>
 
       </section>
     </main>

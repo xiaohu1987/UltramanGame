@@ -167,55 +167,57 @@ img.current-actor-avatar {
     padding-inline: 12px;
   }
 
+  #screen-battle .team-column.ally,
+  #screen-battle .team-column.enemy {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) minmax(180px, 0.72fr);
+    gap: 6px;
+  }
+
   #screen-battle .team-column.ally {
     border-left: 2px solid rgba(99, 210, 255, 0.42);
-    display: grid;
-    grid-template-rows: auto minmax(0, 1fr) minmax(96px, 0.42fr);
-    gap: 6px;
   }
 
   #screen-battle .team-column.ally .team-title {
     margin-bottom: 0;
   }
 
-  #screen-battle .team-column.ally .battle-log-wrap {
+  #screen-battle .team-column.ally .action-bar,
+  #screen-battle .team-column.enemy .battle-log-wrap {
     min-height: 0;
     max-width: 100%;
+    height: 100%;
+    max-height: none;
+    align-self: stretch;
+    overflow: hidden;
   }
 
-  #screen-battle .team-column.ally .battle-log {
+  #screen-battle .team-column.ally .skill-buttons {
     min-height: 0;
     height: 100%;
-    overflow: auto;
-    overflow-wrap: anywhere;
+    overflow: hidden;
+    overscroll-behavior: contain;
   }
 
   #screen-battle .team-column.enemy {
     border-right: 2px solid rgba(255, 93, 108, 0.42);
   }
 
-  #screen-battle .action-bar {
-    align-self: end;
-    height: min(100%, 430px);
-    max-height: 100%;
-  }
-
-  #screen-battle .action-bar .skill-buttons {
+  #screen-battle .team-column.enemy .battle-log {
     min-height: 0;
+    height: 100%;
     overflow: auto;
-    overscroll-behavior: contain;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(99, 210, 255, 0.36) transparent;
+    overflow-wrap: anywhere;
   }
 }
 
-/* 最后加载的战斗布局覆盖：操作区独立置于三栏主战区下方。 */
+/* 最后加载的战斗布局覆盖：三栏主战区，左右底部等高。 */
 @media (min-width: 1101px) {
   #screen-battle .battle-field,
   #screen-battle .battle-field.four-columns,
   #screen-battle .battle-field.vertical-stack {
     grid-template-columns: minmax(300px, 1fr) minmax(320px, 1.1fr) minmax(300px, 1fr) !important;
-    grid-template-rows: minmax(0, 1fr) auto;
+    grid-template-rows: minmax(0, 1fr);
   }
 
   /* 阵营内固定一行三张竖卡，避免主战区退化为纵向名单。 */
@@ -231,11 +233,19 @@ img.current-actor-avatar {
     min-width: 0;
   }
 
-  #screen-battle .action-bar {
-    grid-column: 1 / -1;
-    grid-row: 2;
-    width: auto;
-    height: auto;
+  #screen-battle .team-column.ally .action-bar,
+  #screen-battle .team-column.enemy .battle-log-wrap {
+    min-height: 180px;
+    height: 100%;
+  }
+
+  #screen-battle .team-column.ally .skill-buttons {
+    grid-template-rows: repeat(3, minmax(0, 1fr));
+    overflow: hidden;
+  }
+
+  #screen-battle .team-column.ally .skill-btn {
+    min-height: 0;
     max-height: none;
   }
 }
