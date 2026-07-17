@@ -1084,6 +1084,30 @@
       this.init();
       this.unlockAudio();
 
+      // 中级及以上：心算答对/答错已有独立演出，跳过奥特曼技能攻击特效
+      if (result.skipSkillFx) {
+        // 答错/超时主演出已在 playMathWrongFx；这里只补角色侧轻反馈
+        if (result.missed || result.failed) {
+          const actorCard = result.actorUid
+            ? (
+                document.querySelector(`.current-actor-card[data-uid="${result.actorUid}"], .current-actor-card[data-fx-actor="${result.actorUid}"]`) ||
+                document.querySelector(`.fighter-card[data-uid="${result.actorUid}"]`)
+              )
+            : null;
+          const actorPos = result.actorUid ? this.centerOf(result.actorUid) : { x: window.innerWidth * 0.5, y: window.innerHeight * 0.4 };
+          if (actorCard) {
+            this.pulseDom(actorCard, "debuff", 520);
+            this.spawnBurstOn(result.actorUid, "debuff-down");
+          }
+          this.showFloatGlobal(result.missed ? "MISS" : "FAIL", "debuff", actorPos.x, actorPos.y - 12, 1.2);
+          this.spawnParticles(actorPos.x, actorPos.y, Math.round(16 * this.perfScale), "debuff", 0.9);
+          this.shakeScreen(4, 180);
+          this.flashScreen(0.16, "90,20,30");
+          this.sfx("math_fail", 0.7);
+        }
+        return;
+      }
+
       const originalSkillType = result.skillType;
       if (this.playExpandedSkillFx(result, originalSkillType)) return;
       const visualSkillType = ["damage_all", "multi_hit", "lifesteal"].includes(originalSkillType)
@@ -1340,7 +1364,7 @@
       }
 
       const token = ++this.mathFxToken;
-      const count = Math.max(16, Math.round(24 * this.perfScale));
+      const count = Math.max(28, Math.round(42 * this.perfScale));
       const particles = [];
       const cols = Math.max(3, Math.round(Math.sqrt(count * (width / Math.max(1, height)))));
       const rows = Math.max(3, Math.ceil(count / cols));
@@ -1351,7 +1375,7 @@
           const px = left + ((c + 0.5) / cols) * width + (Math.random() - 0.5) * 6;
           const py = top + ((r + 0.5) / rows) * height + (Math.random() - 0.5) * 6;
           const ang = Math.atan2(py - cy, px - cx) + (Math.random() - 0.5) * 0.6;
-          const spd = 120 + Math.random() * 220;
+          const spd = 180 + Math.random() * 320;
           particles.push({
             x: px,
             y: py,
@@ -1361,13 +1385,13 @@
             vy: 0,
             burstVx: Math.cos(ang) * spd,
             burstVy: Math.sin(ang) * spd - 40,
-            size: 4 + Math.random() * 7,
-            w: 6 + Math.random() * 10,
-            h: 5 + Math.random() * 9,
+            size: 5 + Math.random() * 9,
+            w: 8 + Math.random() * 14,
+            h: 6 + Math.random() * 12,
             color: "#1a1f28",
             baseColor: "#63d2ff",
             glow: false,
-            spin: (Math.random() * 2 - 1) * 10,
+            spin: (Math.random() * 2 - 1) * 14,
             rotation: Math.random() * Math.PI,
             alpha: 1,
             phase: Math.random(),
@@ -1377,11 +1401,11 @@
       }
 
       const onComplete = typeof options.onComplete === "function" ? options.onComplete : null;
-      const DARKEN = 0.28;
-      const CRACK = 0.44;
-      const FADE = 0.26;
+      const DARKEN = 0.34;
+      const CRACK = 0.56;
+      const FADE = 0.34;
       const TOTAL = DARKEN + CRACK + FADE;
-      const SAFETY_MS = 1800;
+      const SAFETY_MS = 2400;
 
       this.mathFx = {
         active: true,
@@ -1401,11 +1425,20 @@
         stage: "darken",
         cracked: false,
         sfxFail: false,
+        cracks: [],
+        sparks: [],
+        rings: [],
+        flashPulse: 0,
+        failLabel: true,
         onComplete,
         safetyTimer: 0,
       };
 
-      this.sfx("math_fail", 1);
+      // heavier fail sting
+      this.sfx("math_fail", 1.2);
+      this.playNoise({ dur: 0.1, gain: 0.14 });
+      this.playTone({ freq: 180, dur: 0.16, type: "sawtooth", gain: 0.14, slide: -90 });
+      this.playTone({ freq: 90, dur: 0.22, type: "square", gain: 0.12, delay: 0.04, slide: -40 });
       this.mathFx.sfxFail = true;
 
       return new Promise((resolve) => {
@@ -1757,57 +1790,154 @@
         if (t <= dEnd) {
           fx.stage = "darken";
           const p = Math.max(0, Math.min(1, t / dEnd));
-          fx.overlayAlpha = p * 0.72;
-          fx.cardAlpha = 1 - p * 0.15;
+          fx.overlayAlpha = p * 0.9;
+          fx.cardAlpha = 1 - p * 0.28;
+          fx.flashPulse = Math.max(fx.flashPulse || 0, p * 0.35);
           for (let i = 0; i < fx.particles.length; i += 1) {
             const pt = fx.particles[i];
             // lerp color toward near-black
-            const shade = Math.round(30 + (1 - p) * 80);
+            const shade = Math.round(18 + (1 - p) * 70);
             pt.color = `rgb(${shade},${shade + 4},${shade + 10})`;
             pt.alpha = 0.55 + p * 0.45;
-            pt.x = pt.ox + (Math.random() - 0.5) * p * 1.2;
-            pt.y = pt.oy + (Math.random() - 0.5) * p * 1.2;
+            pt.x = pt.ox + (Math.random() - 0.5) * p * 2.4;
+            pt.y = pt.oy + (Math.random() - 0.5) * p * 2.4;
           }
         } else if (t <= cEnd) {
           fx.stage = "crack";
           if (!fx.cracked) {
             fx.cracked = true;
             fx.overlayAlpha = 0;
-            this.shakeScreen(3, 180);
-            this.playNoise({ dur: 0.05, gain: 0.08 });
+            this.shakeScreen(10, 360);
+            this.flashScreen(0.38, "90,20,30");
+            this.hitStopFor(70);
+            this.playNoise({ dur: 0.12, gain: 0.18 });
+            this.playNoise({ dur: 0.08, gain: 0.12, delay: 0.05 });
+            this.playTone({ freq: 120, dur: 0.18, type: "sawtooth", gain: 0.16, slide: -70 });
+            this.playTone({ freq: 70, dur: 0.24, type: "square", gain: 0.12, delay: 0.03, slide: -30 });
+            // crack lines across the card
+            fx.cracks = [];
+            const crackN = 5 + Math.floor(Math.random() * 3);
+            for (let i = 0; i < crackN; i += 1) {
+              const x1 = fx.source.left + Math.random() * fx.source.width;
+              const y1 = fx.source.top + Math.random() * fx.source.height;
+              const ang = Math.random() * Math.PI * 2;
+              const len = 40 + Math.random() * 90;
+              fx.cracks.push({
+                x1,
+                y1,
+                x2: x1 + Math.cos(ang) * len,
+                y2: y1 + Math.sin(ang) * len,
+                alpha: 0.95,
+                width: 1.5 + Math.random() * 2.2,
+              });
+            }
+            // red shock rings
+            fx.rings = [
+              { x: fx.source.cx, y: fx.source.cy, r: 8, maxR: 90, alpha: 0.9, width: 5, color: "rgba(255,90,90,0.9)" },
+              { x: fx.source.cx, y: fx.source.cy, r: 4, maxR: 140, alpha: 0.65, width: 3, color: "rgba(180,40,60,0.8)" },
+            ];
+            // dark sparks
+            fx.sparks = [];
+            const sparkN = Math.max(12, Math.round(20 * this.perfScale));
+            for (let i = 0; i < sparkN; i += 1) {
+              const ang = (Math.PI * 2 * i) / sparkN + Math.random() * 0.4;
+              const spd = 160 + Math.random() * 280;
+              fx.sparks.push({
+                x: fx.source.cx,
+                y: fx.source.cy,
+                vx: Math.cos(ang) * spd,
+                vy: Math.sin(ang) * spd - 30,
+                life: 0.28 + Math.random() * 0.24,
+                maxLife: 0.52,
+                size: 2 + Math.random() * 3.2,
+                color: i % 2 === 0 ? "#ff6b7a" : "#7a1f2b",
+              });
+            }
+            this.showFloatGlobal("FAIL!", "debuff", fx.source.cx, fx.source.cy - 18, 1.35);
+            this.showFloatGlobal("MISS", "debuff", fx.source.cx + 16, fx.source.cy + 16, 1.05);
             for (let i = 0; i < fx.particles.length; i += 1) {
               const pt = fx.particles[i];
-              pt.vx = pt.burstVx;
-              pt.vy = pt.burstVy;
-              pt.color = `rgb(${20 + Math.floor(Math.random() * 24)},${22 + Math.floor(Math.random() * 20)},${28 + Math.floor(Math.random() * 22)})`;
+              pt.vx = pt.burstVx * 1.25;
+              pt.vy = pt.burstVy * 1.25;
+              pt.color = `rgb(${28 + Math.floor(Math.random() * 40)},${18 + Math.floor(Math.random() * 18)},${24 + Math.floor(Math.random() * 24)})`;
             }
           }
           const p = (t - dEnd) / fx.crackDur;
+          if (fx.cracks && fx.cracks.length) {
+            for (let i = 0; i < fx.cracks.length; i += 1) {
+              fx.cracks[i].alpha = Math.max(0, 0.95 - p * 0.9);
+            }
+          }
+          if (fx.rings && fx.rings.length) {
+            for (let i = fx.rings.length - 1; i >= 0; i -= 1) {
+              const ring = fx.rings[i];
+              ring.r += (ring.maxR - ring.r) * Math.min(1, dt * 10) + 110 * dt;
+              ring.alpha = Math.max(0, ring.alpha - dt * 2.2);
+              ring.width = Math.max(0.5, ring.width * (1 - dt * 1.6));
+              if (ring.alpha <= 0.02 || ring.r >= ring.maxR) fx.rings.splice(i, 1);
+            }
+          }
+          if (fx.sparks && fx.sparks.length) {
+            for (let i = fx.sparks.length - 1; i >= 0; i -= 1) {
+              const sp = fx.sparks[i];
+              sp.life -= dt;
+              if (sp.life <= 0) {
+                fx.sparks.splice(i, 1);
+                continue;
+              }
+              sp.x += sp.vx * dt;
+              sp.y += sp.vy * dt;
+              sp.vx *= 1 - 1.6 * dt;
+              sp.vy *= 1 - 0.5 * dt;
+              sp.vy += 220 * dt;
+            }
+          }
           for (let i = 0; i < fx.particles.length; i += 1) {
             const pt = fx.particles[i];
-            pt.vy += 380 * dt;
+            pt.vy += 460 * dt;
             pt.x += pt.vx * dt;
             pt.y += pt.vy * dt;
-            pt.vx *= 1 - 0.8 * dt;
+            pt.vx *= 1 - 0.55 * dt;
             pt.rotation += pt.spin * dt;
-            pt.alpha = Math.max(0, 1 - p * 0.35);
+            pt.alpha = Math.max(0, 1 - p * 0.28);
           }
         } else if (t <= fEnd) {
           fx.stage = "fade";
           const p = (t - cEnd) / fx.fadeDur;
+          if (fx.cracks) {
+            for (let i = 0; i < fx.cracks.length; i += 1) {
+              fx.cracks[i].alpha = Math.max(0, fx.cracks[i].alpha - dt * 2.5);
+            }
+          }
+          if (fx.sparks && fx.sparks.length) {
+            for (let i = fx.sparks.length - 1; i >= 0; i -= 1) {
+              const sp = fx.sparks[i];
+              sp.life -= dt;
+              if (sp.life <= 0) {
+                fx.sparks.splice(i, 1);
+                continue;
+              }
+              sp.x += sp.vx * dt;
+              sp.y += sp.vy * dt;
+              sp.vy += 260 * dt;
+            }
+          }
           for (let i = 0; i < fx.particles.length; i += 1) {
             const pt = fx.particles[i];
-            pt.vy += 420 * dt;
+            pt.vy += 520 * dt;
             pt.x += pt.vx * dt;
             pt.y += pt.vy * dt;
             pt.rotation += pt.spin * dt;
-            pt.alpha = Math.max(0, 0.65 * (1 - p));
-            pt.w *= 1 - dt * 1.2;
-            pt.h *= 1 - dt * 1.2;
+            pt.alpha = Math.max(0, 0.75 * (1 - p));
+            pt.w *= 1 - dt * 1.05;
+            pt.h *= 1 - dt * 1.05;
           }
         } else {
           // ensure no residue
           fx.particles.length = 0;
+          fx.cracks = [];
+          fx.sparks = [];
+          fx.rings = [];
           this.finishMathAnswerFx(fx.token);
         }
       }
@@ -1822,7 +1952,7 @@
       if (!fx.correct && fx.stage === "darken" && fx.source) {
         ctx.save();
         ctx.globalAlpha = Math.max(0, Math.min(1, fx.overlayAlpha || 0));
-        ctx.fillStyle = "rgba(4, 6, 10, 0.92)";
+        ctx.fillStyle = "rgba(18, 4, 8, 0.94)";
         const { left, top, width, height } = fx.source;
         const r = 16;
         ctx.beginPath();
@@ -1865,6 +1995,30 @@
           }
         }
         ctx.restore();
+      }
+
+      // fail crack lines
+      if (!fx.correct && fx.cracks && fx.cracks.length) {
+        for (let i = 0; i < fx.cracks.length; i += 1) {
+          const c = fx.cracks[i];
+          if (!c || c.alpha <= 0.02) continue;
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, Math.min(1, c.alpha));
+          ctx.strokeStyle = "rgba(255,120,130,0.95)";
+          ctx.lineWidth = Math.max(1, c.width || 2);
+          ctx.beginPath();
+          ctx.moveTo(c.x1, c.y1);
+          ctx.lineTo(c.x2, c.y2);
+          ctx.stroke();
+          ctx.globalAlpha = Math.max(0, Math.min(0.45, c.alpha * 0.5));
+          ctx.strokeStyle = "rgba(255,255,255,0.75)";
+          ctx.lineWidth = Math.max(0.6, (c.width || 2) * 0.45);
+          ctx.beginPath();
+          ctx.moveTo(c.x1, c.y1);
+          ctx.lineTo(c.x2, c.y2);
+          ctx.stroke();
+          ctx.restore();
+        }
       }
 
       if (fx.orb && fx.orb.alpha > 0.02) {

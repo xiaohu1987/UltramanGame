@@ -316,6 +316,11 @@
 
       const runApply = (modifier) => {
         const result = this.applySkill(actor, skill, target, modifier || {});
+        // 中级及以上走心算后：答对/答错已有答题特效，跳过奥特曼技能攻击特效，避免双重演出
+        if (modifier && modifier.reason && modifier.reason !== "skip") {
+          result.skipSkillFx = true;
+          result.mathReason = modifier.reason;
+        }
         finishResolve(result);
       };
 
