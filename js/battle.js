@@ -48,6 +48,8 @@
       this.attackRampStartTurn = options.attackRampStartTurn ?? 20;
       this.attackRampPerTurn = options.attackRampPerTurn ?? 0.1;
       this._autoTimer = null;
+      /** 自动战斗预选：{ skill, target, skillName, targetName } */
+      this.autoChoice = null;
     }
 
     allUnits() {
@@ -108,10 +110,11 @@
           if (unit.side === "hero") {
             this.phase = PHASE.PLAYER_SELECT_SKILL;
             this.pendingSkill = null;
+            this.autoChoice = null;
             if (this.autoBattle) {
               this.onLog(`${unit.name} 自动中…`);
               this.onUpdate(this.snapshot());
-              this.scheduleAutoPlayer(unit);
+              this.prepareAutoPlayer(unit);
             } else {
               this.onLog(`轮到 ${unit.name}`);
               this.onUpdate(this.snapshot());
@@ -120,7 +123,16 @@
           }
 
           this.phase = PHASE.AI_THINKING;
-          this.onLog(`${unit.name} 出手…`);
+          this.pendingSkill = null;
+          this.autoChoice = null;
+          // 怪兽回合：先预选技能，让左下技能区只读展示
+          const decision = this.decideAutoPlayerAction(unit);
+          if (decision && !decision.error) {
+            this.autoChoice = decision;
+            this.onLog(`${unit.name} 准备用 ${decision.skillName}`);
+          } else {
+            this.onLog(`${unit.name} 出手…`);
+          }
           this.onUpdate(this.snapshot());
           setTimeout(() => this.runAiTurn(unit), this.aiThinkDelay);
           return;
@@ -270,6 +282,21 @@
       this.busy = true;
       this.phase = PHASE.RESOLVING;
       this.pendingSkill = null;
+      // 结算阶段继续展示选用的技能（自动奥特曼 / 怪兽 AI）
+      if (
+        skill &&
+        actor &&
+        (actor.side === "monster" || (this.autoBattle && actor.side === "hero"))
+      ) {
+        this.autoChoice = {
+          skill,
+          target,
+          skillId: skill.id,
+          skillName: skill.name,
+          targetUid: target ? target.uid : null,
+          targetName: target ? target.name : "",
+        };
+      }
 
       if (skill.cooldown > 0) skill.currentCd = skill.cooldown;
 
@@ -457,13 +484,63 @@
       this.autoBattle = !!enabled;
       if (!this.autoBattle) {
         this.clearAutoTimer();
+        this.autoChoice = null;
+        this.onUpdate(this.snapshot());
         return this.autoBattle;
       }
       // 若当前正等待玩家选技能，立即接管
       if (this.phase === PHASE.PLAYER_SELECT_SKILL && this.current && this.current.side === "hero") {
-        this.scheduleAutoPlayer(this.current);
+        this.prepareAutoPlayer(this.current);
       }
       return this.autoBattle;
+    }
+
+    /** 自动出手前先选定技能并刷新 UI，让玩家看到“用了什么” */
+    decideAutoPlayerAction(actor) {
+      if (!actor || !actor.alive) return null;
+      const usable = actor.skills.filter((s) => this.canUseSkill(actor, s));
+      if (!usable.length) return { error: "no_skill" };
+
+      const choice = this.chooseAiSkill(actor, usable);
+      const targets = this.getValidTargets(actor, choice);
+      const target = this.chooseAiTarget(actor, choice, targets);
+      if (!target) return { error: "no_target" };
+
+      return {
+        skill: choice,
+        target,
+        skillId: choice.id,
+        skillName: choice.name,
+        targetUid: target.uid,
+        targetName: target.name,
+      };
+    }
+
+    prepareAutoPlayer(unit) {
+      this.clearAutoTimer();
+      if (!this.autoBattle || this.phase === PHASE.ENDED || this.busy) return;
+      if (this.phase !== PHASE.PLAYER_SELECT_SKILL || !unit || this.current !== unit) return;
+
+      const decision = this.decideAutoPlayerAction(unit);
+      if (!decision || decision.error === "no_skill") {
+        this.autoChoice = null;
+        this.onLog(`${unit.name} 不能动`);
+        this.onUpdate(this.snapshot());
+        this.nextActor();
+        return;
+      }
+      if (decision.error === "no_target") {
+        this.autoChoice = null;
+        this.onLog(`${unit.name} 没目标`);
+        this.onUpdate(this.snapshot());
+        this.nextActor();
+        return;
+      }
+
+      this.autoChoice = decision;
+      this.onLog(`${unit.name} 准备用 ${decision.skillName}`);
+      this.onUpdate(this.snapshot());
+      this.scheduleAutoPlayer(unit);
     }
 
     scheduleAutoPlayer(unit) {
@@ -483,49 +560,66 @@
       }
       if (this.phase !== PHASE.PLAYER_SELECT_SKILL || this.current !== actor) return;
 
-      const usable = actor.skills.filter((s) => this.canUseSkill(actor, s));
-      if (!usable.length) {
-        this.onLog(`${actor.name} 不能动`);
-        this.nextActor();
-        return;
+      let decision = this.autoChoice;
+      const stillValid =
+        decision &&
+        decision.skill &&
+        decision.target &&
+        decision.skillId &&
+        actor.skills.some((s) => s.id === decision.skillId) &&
+        this.canUseSkill(actor, decision.skill) &&
+        this.getValidTargets(actor, decision.skill).some((t) => t.uid === decision.targetUid);
+
+      if (!stillValid) {
+        decision = this.decideAutoPlayerAction(actor);
+        if (!decision || decision.error) {
+          this.autoChoice = null;
+          this.onLog(`${actor.name} ${decision && decision.error === "no_target" ? "没目标" : "不能动"}`);
+          this.nextActor();
+          return;
+        }
+        this.autoChoice = decision;
+        this.onUpdate(this.snapshot());
       }
 
-      const choice = this.chooseAiSkill(actor, usable);
-      const targets = this.getValidTargets(actor, choice);
-      const target = this.chooseAiTarget(actor, choice, targets);
-      if (!target) {
-        this.onLog(`${actor.name} 没目标`);
-        this.nextActor();
-        return;
-      }
-
-      this.onLog(`${actor.name} 自动用 ${choice.name}`);
-      this.resolveAction(actor, choice, target);
+      this.onLog(`${actor.name} 自动用 ${decision.skillName}`);
+      this.resolveAction(actor, decision.skill, decision.target);
     }
 
     runAiTurn(actor) {
-      if (this.phase === PHASE.ENDED || !actor.alive) {
+      if (this.phase === PHASE.ENDED || !actor || !actor.alive) {
         this.nextActor();
         return;
       }
+      if (this.phase !== PHASE.AI_THINKING || this.current !== actor) return;
 
-      const usable = actor.skills.filter((s) => this.canUseSkill(actor, s));
-      if (!usable.length) {
-        this.onLog(`${actor.name} 不能动`);
-        this.nextActor();
-        return;
+      let decision = this.autoChoice;
+      const stillValid =
+        decision &&
+        decision.skill &&
+        decision.target &&
+        decision.skillId &&
+        actor.skills.some((s) => s.id === decision.skillId) &&
+        this.canUseSkill(actor, decision.skill) &&
+        this.getValidTargets(actor, decision.skill).some((t) => t.uid === decision.targetUid);
+
+      if (!stillValid) {
+        decision = this.decideAutoPlayerAction(actor);
+        if (!decision || decision.error) {
+          this.autoChoice = null;
+          this.onLog(
+            `${actor.name} ${decision && decision.error === "no_target" ? "没目标" : "不能动"}`
+          );
+          this.onUpdate(this.snapshot());
+          this.nextActor();
+          return;
+        }
+        this.autoChoice = decision;
+        this.onUpdate(this.snapshot());
       }
 
-      const choice = this.chooseAiSkill(actor, usable);
-      const targets = this.getValidTargets(actor, choice);
-      const target = this.chooseAiTarget(actor, choice, targets);
-      if (!target) {
-        this.onLog(`${actor.name} 没目标`);
-        this.nextActor();
-        return;
-      }
-
-      this.resolveAction(actor, choice, target);
+      this.onLog(`${actor.name} 使用 ${decision.skillName}`);
+      this.resolveAction(actor, decision.skill, decision.target);
     }
 
     chooseAiSkill(actor, usable) {
@@ -643,6 +737,15 @@
         turn: this.turn,
         currentUid: this.current ? this.current.uid : null,
         pendingSkill: this.pendingSkill,
+        autoChoice: this.autoChoice
+          ? {
+              skillId: this.autoChoice.skillId,
+              skillName: this.autoChoice.skillName,
+              targetUid: this.autoChoice.targetUid,
+              targetName: this.autoChoice.targetName,
+              skill: this.autoChoice.skill,
+            }
+          : null,
         heroes: this.heroes,
         monsters: this.monsters,
         winner: this.winner,

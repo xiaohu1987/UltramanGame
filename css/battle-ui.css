@@ -313,6 +313,52 @@
   opacity: 0.72;
 }
 
+.skill-btn.is-auto-selected {
+  border-color: color-mix(in srgb, var(--accent, #63d2ff) 78%, white 10%);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--accent, #63d2ff) 48%, transparent),
+    0 0 18px color-mix(in srgb, var(--accent, #63d2ff) 30%, transparent),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  background:
+    radial-gradient(circle at 18% 30%, color-mix(in srgb, var(--accent, #63d2ff) 36%, transparent), transparent 58%),
+    rgba(10, 28, 46, 0.78);
+}
+
+.skill-btn.is-auto-selected .skill-meta {
+  color: #9ef0ff;
+  font-weight: 800;
+}
+
+.skill-buttons.auto-locked .skill-btn:not(.is-auto-selected) {
+  opacity: 0.48;
+  filter: saturate(0.75);
+}
+
+
+.skill-buttons.monster-skill-view .skill-owner {
+  border-color: color-mix(in srgb, #c084fc 34%, transparent);
+  background:
+    radial-gradient(circle at 12% 50%, color-mix(in srgb, #c084fc 20%, transparent), transparent 55%),
+    rgba(18, 10, 28, 0.34);
+}
+
+.skill-buttons.monster-skill-view .skill-btn.is-auto-selected {
+  border-color: color-mix(in srgb, #c084fc 72%, white 10%);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, #c084fc 42%, transparent),
+    0 0 18px color-mix(in srgb, #c084fc 26%, transparent),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  background:
+    radial-gradient(circle at 18% 30%, color-mix(in srgb, #c084fc 34%, transparent), transparent 58%),
+    rgba(28, 14, 40, 0.78);
+}
+
+.skill-buttons.monster-skill-view .skill-btn.is-auto-selected .skill-meta {
+  color: #efd0ff;
+  font-weight: 800;
+}
+
+
 /* 右侧技能栏：当前奥特曼 + 三个技能竖排 */
 .skill-buttons {
   display: grid;

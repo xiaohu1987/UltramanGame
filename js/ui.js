@@ -557,7 +557,9 @@
       els.skillButtons.innerHTML = "";
       els.btnCancelTarget.hidden = true;
       els.btnCancelTarget.textContent = "取消";
-      if (els.skillButtons) els.skillButtons.classList.remove("selecting-target");
+      if (els.skillButtons) {
+        els.skillButtons.classList.remove("selecting-target", "auto-locked", "monster-skill-view");
+      }
     } else if (current) {
       const sideLabel = current.side === "hero" ? "你" : "怪兽";
       const attackRampText = state.attackRampPercent > 0 ? ` · 战意+${state.attackRampPercent}%` : "";
@@ -566,6 +568,18 @@
       pulseClass(els.turnBanner, "banner-pop", 360);
     }
 
+    const autoChoice = state.autoChoice || null;
+    const autoSkillName = autoChoice ? autoChoice.skillName : "";
+    const autoTargetName = autoChoice ? autoChoice.targetName : "";
+    const isMonsterActor = !!(current && current.side === "monster");
+    const isMonsterSkillPhase =
+      isMonsterActor && (state.phase === "ai_thinking" || state.phase === "resolving");
+    const showAutoSkill =
+      !!state.autoBattle &&
+      current &&
+      current.side === "hero" &&
+      (state.phase === "player_select_skill" || state.phase === "resolving");
+
     if (state.phase === "player_select_target") {
       const pendingName = state.pendingSkill ? state.pendingSkill.name : "技能";
       els.targetHint.textContent = `点目标 · ${pendingName}`;
@@ -573,24 +587,47 @@
       els.btnCancelTarget.textContent = "取消技能";
       if (els.skillButtons) els.skillButtons.classList.add("selecting-target");
     } else {
-      els.targetHint.textContent =
-        state.phase === "player_select_skill" ? (state.autoBattle ? "自动中…" : "点一个技能") : "";
+      if (showAutoSkill) {
+        els.targetHint.textContent = autoSkillName
+          ? `自动 · ${autoSkillName}${autoTargetName ? ` → ${autoTargetName}` : ""}`
+          : "自动中…";
+      } else if (isMonsterSkillPhase) {
+        els.targetHint.textContent = autoSkillName
+          ? `怪兽 · ${autoSkillName}${autoTargetName ? ` → ${autoTargetName}` : ""}`
+          : "怪兽思考中…";
+      } else {
+        els.targetHint.textContent = state.phase === "player_select_skill" ? "点一个技能" : "";
+      }
       els.btnCancelTarget.hidden = true;
       els.btnCancelTarget.textContent = "取消";
       if (els.skillButtons) els.skillButtons.classList.remove("selecting-target");
     }
 
-    // 技能按钮：选技能 / 选目标阶段都保留列表，避免操作区突然变空
+    // 技能按钮：手动选技能/目标、自动战斗、怪兽回合都保留列表
     els.skillButtons.innerHTML = "";
-    const showSkillPanel =
+    const showHeroSkillPanel =
       current &&
       current.side === "hero" &&
-      !state.autoBattle &&
-      (state.phase === "player_select_skill" || state.phase === "player_select_target");
+      (state.phase === "player_select_skill" ||
+        state.phase === "player_select_target" ||
+        (state.autoBattle && state.phase === "resolving"));
+    const showSkillPanel = showHeroSkillPanel || isMonsterSkillPhase;
+
+    // 怪兽回合 / 自动战斗：技能区只读
+    if (els.skillButtons) {
+      els.skillButtons.classList.toggle(
+        "auto-locked",
+        !!state.autoBattle || isMonsterSkillPhase
+      );
+      els.skillButtons.classList.toggle("monster-skill-view", isMonsterSkillPhase);
+    }
 
     if (showSkillPanel) {
       const selectingTarget = state.phase === "player_select_target";
       const pendingSkillId = state.pendingSkill ? state.pendingSkill.id : null;
+      const autoSkillId = autoChoice ? autoChoice.skillId : null;
+      const isAutoMode = !!state.autoBattle && current.side === "hero";
+      const isReadOnly = isAutoMode || isMonsterSkillPhase;
 
       const owner = document.createElement("div");
       owner.className = "skill-owner";
@@ -601,7 +638,19 @@
         </div>
         <div class="skill-owner-meta">
           <strong>${current.name}</strong>
-          <span>${selectingTarget ? "已选技能，点目标" : "点技能出手"}</span>
+          <span>${
+            isMonsterSkillPhase
+              ? autoSkillName
+                ? `使用 ${autoSkillName}`
+                : "思考中…"
+              : isAutoMode
+                ? autoSkillName
+                  ? `自动用 ${autoSkillName}`
+                  : "自动选择中…"
+                : selectingTarget
+                  ? "已选技能，点目标"
+                  : "点技能出手"
+          }</span>
         </div>
       `;
       els.skillButtons.appendChild(owner);
@@ -610,10 +659,13 @@
         const btn = document.createElement("button");
         btn.type = "button";
         const isPending = selectingTarget && pendingSkillId === skill.id;
-        btn.className = `skill-btn ${skillTypeClass(skill.type)}${isPending ? " is-pending" : ""}`;
+        const isAutoSelected = isReadOnly && autoSkillId === skill.id;
+        btn.className = `skill-btn ${skillTypeClass(skill.type)}${
+          isPending || isAutoSelected ? " is-pending" : ""
+        }${isAutoSelected ? " is-auto-selected" : ""}`;
         btn.style.setProperty("--accent", current.color);
-        const friendlyUnits = state.heroes;
-        const enemyUnits = state.monsters;
+        const friendlyUnits = current.side === "hero" ? state.heroes : state.monsters;
+        const enemyUnits = current.side === "hero" ? state.monsters : state.heroes;
         const usableTargets =
           skill.target === "self" ||
           (skill.target === "ally" && friendlyUnits.some((unit) => unit.alive)) ||
@@ -623,10 +675,15 @@
           (skill.target === "dead_ally" && friendlyUnits.some((unit) => !unit.alive)) ||
           (skill.target === "all_dead_allies" && friendlyUnits.some((unit) => !unit.alive));
         const usable = skill.currentCd <= 0 && usableTargets;
+        // 只读（自动/怪兽）：全部锁定，仅高亮预选技能
         // 选目标阶段：保留技能列表，锁定其他技能，突出已选技能
-        btn.disabled = selectingTarget ? !isPending : !usable;
-        if (selectingTarget) {
-          btn.setAttribute("aria-pressed", isPending ? "true" : "false");
+        if (isReadOnly) {
+          btn.disabled = true;
+        } else {
+          btn.disabled = selectingTarget ? !isPending : !usable;
+        }
+        if (selectingTarget || isAutoSelected) {
+          btn.setAttribute("aria-pressed", isPending || isAutoSelected ? "true" : "false");
         } else {
           btn.removeAttribute("aria-pressed");
         }
@@ -636,16 +693,24 @@
             <span class="skill-name">${skill.name}</span>
           </span>
           <span class="skill-meta">${
-            isPending ? "已选" : skill.currentCd > 0 ? `等 ${skill.currentCd}` : "可用"
+            isAutoSelected
+              ? isMonsterSkillPhase
+                ? "出手"
+                : "自动"
+              : isPending
+                ? "已选"
+                : skill.currentCd > 0
+                  ? `等 ${skill.currentCd}`
+                  : "可用"
           }</span>
           <span class="skill-desc">${skill.desc || "暂无说明"}</span>
         `;
-        if (!selectingTarget) {
+        if (!isReadOnly && !selectingTarget) {
           btn.addEventListener("click", () => {
             if (fx()) fx().playUi("click", btn);
             handlers.onSkill(skill.id);
           });
-        } else if (isPending) {
+        } else if (!isReadOnly && isPending) {
           // 再次点击已选技能 = 取消，回到技能选择
           btn.addEventListener("click", () => {
             if (fx()) fx().playUi("click", btn);
@@ -654,13 +719,6 @@
         }
         els.skillButtons.appendChild(btn);
       });
-    }
-
-    if (state.autoBattle && state.phase === "player_select_skill") {
-      const tip = document.createElement("div");
-      tip.className = "auto-skill-tip";
-      tip.textContent = "自动中…";
-      els.skillButtons.appendChild(tip);
     }
 
     // 目标点击
