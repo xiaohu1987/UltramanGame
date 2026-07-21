@@ -1,0 +1,117 @@
+const fs = require("fs");
+const path = "js/math-challenge.js";
+let s = fs.readFileSync(path, "utf8");
+const nl = s.includes("\r\n") ? "\r\n" : "\n";
+
+function block(lines) {
+  return lines.join(nl);
+}
+
+const old = block([
+  "  function buildAddTip(a, b, prefer10, originalText) {",
+  "    if (a === b && (a === 5 || a === 10)) {",
+  "      return tipResult({",
+  "        base: a,",
+  '        title: a === 10 ? "两个十" : "两个五",',
+  "        originalText: originalText,",
+  '        rewrittenText: a + " + " + b + " = " + a * 2,',
+  '        steps: [a + " + " + a + " = " + a * 2, "记住这个好朋友组合，算得更快！"],',
+  "        morph: null,",
+  '        reason: "double",',
+  "      });",
+  "    }",
+  "",
+  "    // 凑十：拆第二个数",
+]);
+
+const neu = block([
+  "  function buildAddTip(a, b, prefer10, originalText) {",
+  "    if (a === b && (a === 5 || a === 10)) {",
+  "      return tipResult({",
+  "        base: a,",
+  '        title: a === 10 ? "两个十" : "两个五",',
+  "        originalText: originalText,",
+  '        rewrittenText: a + " + " + b + " = " + a * 2,',
+  '        steps: [a + " + " + a + " = " + a * 2, "记住这个好朋友组合，算得更快！"],',
+  "        morph: null,",
+  '        reason: "double",',
+  "      });",
+  "    }",
+  "",
+  "    // 优先：一边是 5/10 时，把另一边拆成「余数 + 5/10」",
+  "    // 例：7+5 → 2+5+5；12+10 → 2+10+10",
+  "    if (b === 5 && a > 5) {",
+  "      const rest = a - 5;",
+  "      return tipResult({",
+  "        base: 5,",
+  '        title: "拆成五",',
+  "        originalText: originalText,",
+  '        rewrittenText: rest + " + 5 + 5 = ?",',
+  "        steps: [",
+  '          "把 " + a + " 慢慢拆成 " + rest + " + 5",',
+  '          "现在变成 " + rest + " + 5 + 5",',
+  '          "两个 5 先凑成 10，再加 " + rest + " = " + (a + b),',
+  "        ],",
+  '        morph: { index: "a", from: a, parts: [rest, 5] },',
+  '        reason: "pair5-a",',
+  "      });",
+  "    }",
+  "    if (a === 5 && b > 5) {",
+  "      const rest = b - 5;",
+  "      return tipResult({",
+  "        base: 5,",
+  '        title: "拆成五",',
+  "        originalText: originalText,",
+  '        rewrittenText: "5 + " + rest + " + 5 = ?",',
+  "        steps: [",
+  '          "把 " + b + " 慢慢拆成 " + rest + " + 5",',
+  '          "现在变成 5 + " + rest + " + 5",',
+  '          "两个 5 先凑成 10，再加 " + rest + " = " + (a + b),',
+  "        ],",
+  '        morph: { index: "b", from: b, parts: [rest, 5] },',
+  '        reason: "pair5-b",',
+  "      });",
+  "    }",
+  "    if (b === 10 && a > 10) {",
+  "      const rest = a - 10;",
+  "      return tipResult({",
+  "        base: 10,",
+  '        title: "拆成十",',
+  "        originalText: originalText,",
+  '        rewrittenText: rest + " + 10 + 10 = ?",',
+  "        steps: [",
+  '          "把 " + a + " 慢慢拆成 " + rest + " + 10",',
+  '          "现在变成 " + rest + " + 10 + 10",',
+  '          "两个 10 先凑成 20，再加 " + rest + " = " + (a + b),',
+  "        ],",
+  '        morph: { index: "a", from: a, parts: [rest, 10] },',
+  '        reason: "pair10-a",',
+  "      });",
+  "    }",
+  "    if (a === 10 && b > 10) {",
+  "      const rest = b - 10;",
+  "      return tipResult({",
+  "        base: 10,",
+  '        title: "拆成十",',
+  "        originalText: originalText,",
+  '        rewrittenText: "10 + " + rest + " + 10 = ?",',
+  "        steps: [",
+  '          "把 " + b + " 慢慢拆成 " + rest + " + 10",',
+  '          "现在变成 10 + " + rest + " + 10",',
+  '          "两个 10 先凑成 20，再加 " + rest + " = " + (a + b),',
+  "        ],",
+  '        morph: { index: "b", from: b, parts: [rest, 10] },',
+  '        reason: "pair10-b",',
+  "      });",
+  "    }",
+  "",
+  "    // 凑十：拆第二个数",
+]);
+
+if (!s.includes(old)) {
+  console.error("buildAddTip head missing");
+  process.exit(1);
+}
+s = s.replace(old, neu);
+fs.writeFileSync(path, s);
+console.log("priority patched");
