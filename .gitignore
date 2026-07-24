@@ -1,0 +1,22 @@
+# Node / dev
+node_modules/
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+
+# Verify / temp artifacts (keep only .codexh/ for project memory)
+tmp-*
+tmp_*
+
+# Debug
+*.log
+
+# Python bytecode
+__pycache__/
+*.pyc
+*** End Patch

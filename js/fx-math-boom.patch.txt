@@ -1,8 +1,0 @@
-Math correct-answer hit FX boom upgrade
-- Multi-layer explosion particles (crit/hit/ko)
-- Blast fireball core + radial sparks
-- 4 shockwave rings
-- Max screen shake + hard flash + 120ms hit-stop
-- Layered boom SFX (noise + low boom + crack + crit/hit/ko)
-- Faster gather/fly, longer hit hold
-- BOOM! + HIT! float text

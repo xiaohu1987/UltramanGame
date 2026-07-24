@@ -18,16 +18,8 @@
 | `RED KING II.jpg` | 红王 |
 | `ALIEN BALTAN (1).jpg` | 巴尔坦星人 |
 
-旧版占位 SVG 仍保留于：
-
-- `assets/heroes/*.svg`
-- `assets/monsters/*.svg`
-
-但**已不再作为运行时主素材**。
-
 ## 许可
 
-- 旧版 SVG 占位图：可随本项目自由使用、修改。
 - `ultraman_heroes` / `ultraman_kaiju`：由用户本地提供，仅用于本项目演示；如对外发布请自行确认版权与授权。
 - 若后续替换为 GitHub 开源素材，请在本文件追加：仓库地址、作者、License、修改说明。
 
@@ -52,5 +44,3 @@
 - 素材池总量：`ultraman_heroes` 约 53 张，`ultraman_kaiju` 约 204 张（未全部接入角色表）
 
 > 说明：角色表接入了可支撑 3v3 的精选阵容；其余素材可继续按同样方式扩展到 `js/data.js`。
-
-桌面验收截图示例：`.codexh/verify/desktop-select.png`

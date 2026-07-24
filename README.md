@@ -20,8 +20,6 @@ python -m http.server 8080
 
 双击 `index.html` 也可游玩；若图片路径含空格，建议使用本地静态服务器。
 
-当前本地验证地址示例：`http://127.0.0.1:8765/`
-
 ## 操作说明
 
 1. **选角阶段**：从候选奥特曼中点选恰好 3 名，点击「开始对战」。
@@ -40,19 +38,32 @@ python -m http.server 8080
 
 ```
 .
-├── index.html
-├── css/style.css
+├── index.html              # 入口页面
+├── .gitignore              # 版本忽略规则
+├── css/
+│   ├── style.css           # 基础样式
+│   ├── select-ui.css       # 选角界面
+│   ├── battle-ui.css       # 战斗界面
+│   ├── arcade-fx.css       # 街机特效
+│   ├── layout-fit.css      # 布局适配
+│   ├── kids-ui.css         # 儿童友好
+│   ├── battle-overlay-fix.css
+│   ├── fullbody-fix.css
+│   ├── duel-table.css
+│   ├── status-avatar-fx.css
+│   ├── turn-order.css
+│   └── math-challenge.css
 ├── js/
-│   ├── data.js      # 角色与技能数据
-│   ├── battle.js    # 回合制状态机 + AI
-│   ├── ui.js        # 选角/战斗界面
-│   └── main.js      # 流程控制
+│   ├── data.js             # 角色与技能数据
+│   ├── battle.js           # 回合制状态机 + AI
+│   ├── ui.js               # 选角/战斗界面
+│   ├── fx.js               # 街机特效系统
+│   ├── math-challenge.js   # 数学挑战
+│   └── main.js             # 流程控制
 ├── assets/
-│   ├── ultraman_heroes/  # 奥特曼立绘素材
-│   ├── ultraman_kaiju/   # 怪兽立绘素材
-│   ├── heroes/           # 旧版 SVG 占位（已不作为运行时主素材）
-│   ├── monsters/         # 旧版 SVG 占位（已不作为运行时主素材）
-│   └── CREDITS.md   # 素材来源说明
+│   ├── ultraman_heroes/    # 奥特曼立绘（~53 张）
+│   ├── ultraman_kaiju/     # 怪兽立绘（~204 张）
+│   └── CREDITS.md          # 素材来源说明
 └── README.md
 ```
 
@@ -64,18 +75,15 @@ python -m http.server 8080
 - `assets/ultraman_heroes/`（奥特曼）
 - `assets/ultraman_kaiju/`（怪兽）
 
-角色中文名按素材文件名翻译；旧版 `assets/heroes` / `assets/monsters` SVG 仅保留作备份，不再被 `js/data.js` 引用。
+角色中文名按素材文件名翻译。
 
-本地推荐预览：`npx http-server . -p 8787 -c-1`，然后打开 `http://127.0.0.1:8787/`。
-
-验证截图（可选）：`.codexh/verify/desktop-select.png`
-
-## 设计说明（首版范围）
+## 设计说明
 
 - 回合制 3v3
 - 双方均可释放技能
 - 冷却、治疗、增益、减益
 - 伤害飘字与战斗日志
 - 桌面端布局优先
+- 街机风格特效系统（粒子、震屏、连击、程序化音效）
 
 未包含：联网对战、复杂剧情、账号系统。

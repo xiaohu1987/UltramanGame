@@ -16,7 +16,7 @@
   <link rel="stylesheet" href="css/duel-table.css?v=random-arenas-15" />
   <link rel="stylesheet" href="css/status-avatar-fx.css?v=purple-bubbles-2" />
   <link rel="stylesheet" href="css/turn-order.css?v=1" />
-  <link rel="stylesheet" href="css/math-challenge.css?v=math-tip-1" />
+  <link rel="stylesheet" href="css/math-challenge.css?v=tip-half-voice-2" />
 </head>
 <body>
   <div id="app">
@@ -25,7 +25,7 @@
         <span class="brand-mark">⚡</span>
         <div>
           <h1>奥特曼打怪兽</h1>
-          <p>选 3 个奥特曼，打败怪兽！</p>
+          <p>选 3 个奥特曼，打赢怪兽！</p>
         </div>
       </div>
       <div id="phase-badge" class="phase-badge">选人</div>
@@ -145,7 +145,7 @@
               <!-- 兼容旧节点，默认隐藏 -->
               <section id="monster-intel" class="monster-intel" hidden aria-hidden="true">
                 <div class="monster-intel-head">
-                  <h3>怪兽技能</h3>
+                  <h3>怪兽情报</h3>
                 </div>
                 <div id="monster-intel-list" class="monster-intel-list"></div>
               </section>
@@ -174,38 +174,65 @@
         <div class="result-radiance" aria-hidden="true"></div>
         <div class="result-sparkles" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
         <div id="result-icon" class="result-icon" aria-hidden="true">★</div>
-        <div id="result-kicker" class="result-kicker">战斗结算</div>
-        <h2 id="result-title">打完了</h2>
-        <p id="result-desc"></p>
-        <button id="btn-restart" class="btn primary" type="button">再玩一次</button>
+        <h2 id="result-title">胜利！</h2>
+        <p id="result-desc">奥特曼赢了！</p>
+        <div class="modal-actions">
+          <button id="btn-restart" class="btn primary" type="button">再来一局</button>
+        </div>
       </div>
     </div>
+  </div>
 
-    <!-- 进页难度选择弹窗：每次进入选人页弹出 -->
-    <div id="difficulty-modal" class="difficulty-modal" hidden>
-      <div class="difficulty-modal-backdrop" aria-hidden="true"></div>
-      <div class="difficulty-modal-card" role="dialog" aria-modal="true" aria-labelledby="difficulty-modal-title">
-        <div class="difficulty-modal-glow" aria-hidden="true"></div>
-        <p class="difficulty-modal-kicker">开战难度</p>
+  <!-- 心算挑战弹窗（中级及以上） -->
+  <div id="math-challenge-root" class="math-challenge-root" hidden aria-hidden="true">
+    <div class="math-challenge-backdrop" data-math-dismiss="0"></div>
+    <div class="math-challenge-card" role="dialog" aria-modal="true" aria-labelledby="math-challenge-title">
+      <div class="math-challenge-head">
+        <div>
+          <div id="math-challenge-title" class="math-challenge-title">心算挑战</div>
+          <div id="math-challenge-sub" class="math-challenge-sub">答对技能更强</div>
+        </div>
+        <div class="math-challenge-timer-wrap" aria-live="polite">
+          <div class="math-challenge-timer-label">剩余</div>
+          <div id="math-challenge-timer" class="math-challenge-timer">30</div>
+        </div>
+      </div>
+      <div class="math-challenge-body">
+        <div id="math-challenge-question" class="math-question" aria-live="polite">1 + 1 = ?</div>
+        <div class="math-tip-panel" id="math-challenge-tip-panel" hidden>
+          <div class="math-tip-head">
+            <span class="math-tip-badge">提醒</span>
+            <strong id="math-challenge-tip-title">小提示</strong>
+          </div>
+          <div class="math-tip-steps" id="math-challenge-tip-steps"></div>
+        </div>
+        <form id="math-challenge-form" class="math-form" autocomplete="off">
+          <label class="math-input-label" for="math-challenge-input">答案</label>
+          <input id="math-challenge-input" class="math-input" type="number" inputmode="numeric" enterkeyhint="done" required />
+          <div class="math-form-actions">
+            <button id="math-challenge-tip-btn" class="btn math-tip-btn" type="button" aria-expanded="false" aria-controls="math-challenge-tip-panel">提醒</button>
+            <button id="math-challenge-submit" class="btn primary" type="submit">确定</button>
+          </div>
+        </form>
+        <div id="math-challenge-hint" class="math-hint">不会就猜一个，快点！</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 开战前难度确认弹窗 -->
+  <div id="difficulty-modal" class="difficulty-modal" hidden aria-hidden="true">
+    <div class="difficulty-modal-backdrop" data-difficulty-dismiss="1"></div>
+    <div class="difficulty-modal-card" role="dialog" aria-modal="true" aria-labelledby="difficulty-modal-title">
+      <div class="difficulty-modal-head">
         <h2 id="difficulty-modal-title">选择难度</h2>
-        <p class="difficulty-modal-sub">答对技能更强，答错会失手。可随时在选人页紧凑条再改。</p>
-        <div id="difficulty-modal-options" class="difficulty-modal-options" role="radiogroup" aria-label="选择难度">
-          <button type="button" class="difficulty-modal-option is-active" data-difficulty="easy" aria-pressed="true">
-            <span class="diff-label">初级</span>
-            <span class="diff-desc">直接出手，和现在一样</span>
-          </button>
-          <button type="button" class="difficulty-modal-option" data-difficulty="normal" aria-pressed="false">
-            <span class="diff-label">中级</span>
-            <span class="diff-desc">10 以内加减法，答对 +5%</span>
-          </button>
-          <button type="button" class="difficulty-modal-option" data-difficulty="hard" aria-pressed="false">
-            <span class="diff-label">高级</span>
-            <span class="diff-desc">20 以内加减法，答对 +5%</span>
-          </button>
-          <button type="button" class="difficulty-modal-option" data-difficulty="hell" aria-pressed="false">
-            <span class="diff-label">地狱级</span>
-            <span class="diff-desc">100 以内加减法，答对 +5%</span>
-          </button>
+        <p class="difficulty-modal-lead">开战前再确认一次</p>
+      </div>
+      <div class="difficulty-modal-body">
+        <div id="difficulty-modal-options" class="difficulty-options difficulty-modal-options" role="radiogroup" aria-label="开战难度">
+          <button type="button" class="difficulty-option is-active" data-difficulty="easy" aria-pressed="true">初级</button>
+          <button type="button" class="difficulty-option" data-difficulty="normal" aria-pressed="false">中级</button>
+          <button type="button" class="difficulty-option" data-difficulty="hard" aria-pressed="false">高级</button>
+          <button type="button" class="difficulty-option" data-difficulty="hell" aria-pressed="false">地狱级</button>
         </div>
         <p id="difficulty-modal-hint" class="difficulty-modal-hint">直接出手，和现在一样</p>
         <button id="btn-difficulty-confirm" class="btn primary difficulty-modal-confirm" type="button">确认难度</button>
@@ -216,6 +243,7 @@
   <script src="js/data.js?v=roster-25-12"></script>
   <script src="js/math-challenge.js?v=math-tip-voice-cute-1"></script>
   <script src="js/battle.js?v=difficulty-popup-1"></script>
+  <script src="js/tip-half-and-voice.js?v=tip-half-voice-2"></script>
   <script src="js/fx.js?v=difficulty-popup-1"></script>
   <script src="js/ui.js?v=difficulty-popup-1"></script>
   <script src="js/main.js?v=difficulty-popup-1"></script>

@@ -523,6 +523,18 @@
     linear-gradient(180deg, rgba(24, 56, 78, 0.95), rgba(12, 28, 42, 0.98));
 }
 
+.math-tip-btn[data-tip-half-pending="1"] {
+  box-shadow:
+    0 0 0 1px rgba(255, 209, 102, 0.28),
+    0 0 16px rgba(255, 196, 80, 0.28),
+    0 8px 18px rgba(0, 0, 0, 0.22);
+}
+
+/* 全场提醒减半生效中（调试/反馈标记） */
+body[data-math-tip-half="1"] .math-tip-btn.is-used {
+  border-color: rgba(255, 209, 102, 0.7);
+}
+
 .math-tip-btn:disabled,
 .math-submit:disabled {
   opacity: 0.55;
