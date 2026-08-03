@@ -530,6 +530,121 @@
   .fx-combo-value { font-size: 1.5rem; }
 }
 
+/* === 心算连击 HUD：右上红框（新增） === */
+.fx-math-combo-hud {
+  position: absolute;
+  left: auto;
+  right: clamp(220px, 26vw, 360px);
+  top: max(16px, env(safe-area-inset-top));
+  transform: none;
+  min-width: 104px;
+  padding: 8px 12px 10px;
+  border-radius: 14px;
+  background:
+    linear-gradient(160deg, rgba(255, 80, 90, 0.28), transparent 55%),
+    rgba(20, 6, 10, 0.82);
+  border: 2px solid rgba(255, 80, 90, 0.72);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.34), 0 0 20px rgba(255, 80, 90, 0.28);
+  z-index: 22;
+  pointer-events: none;
+  color: #ffd9dc;
+  text-align: center;
+  backdrop-filter: blur(8px);
+}
+
+.fx-math-combo-hud.pop {
+  animation: math-combo-boom 0.42s cubic-bezier(0.16, 0.9, 0.3, 1.25);
+}
+
+.fx-math-combo-hud.boom {
+  animation: math-combo-boom 0.42s cubic-bezier(0.16, 0.9, 0.3, 1.25),
+    math-combo-ring 0.72s ease-out;
+}
+
+.fx-math-combo-hud.max {
+  border-color: rgba(255, 209, 102, 0.9);
+  box-shadow: 0 0 32px rgba(255, 209, 102, 0.4), 0 12px 30px rgba(0, 0, 0, 0.4);
+  color: #fff1c2;
+}
+
+.fx-math-combo-label {
+  font-size: 0.72rem;
+  letter-spacing: 0.15em;
+  font-weight: 800;
+  opacity: 0.92;
+}
+
+.fx-math-combo-value {
+  font-size: 1.9rem;
+  font-weight: 900;
+  line-height: 1.05;
+  text-shadow: 0 0 16px rgba(255, 80, 90, 0.6);
+}
+
+.fx-math-combo-sub {
+  margin-top: 2px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #ffb3ba;
+}
+
+.fx-math-combo-hud.max .fx-math-combo-sub {
+  color: #ffe39a;
+}
+
+.fx-math-combo-ring,
+.fx-math-combo-blast {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0.2);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.fx-math-combo-ring {
+  border: 3px solid rgba(255, 200, 120, 0.9);
+  box-shadow: 0 0 18px rgba(255, 200, 120, 0.7);
+}
+
+.fx-math-combo-ring.blast {
+  animation: math-combo-ring 0.72s cubic-bezier(0.12, 0.76, 0.27, 1) forwards;
+}
+
+.fx-math-combo-blast {
+  background: radial-gradient(circle, rgba(255, 251, 207, 0.98) 0 8%, rgba(255, 137, 69, 0.82) 24%, rgba(255, 64, 94, 0.42) 46%, transparent 72%);
+  box-shadow: 0 0 22px rgba(255, 215, 99, 0.9), 0 0 44px rgba(255, 79, 96, 0.52);
+}
+
+.fx-math-combo-blast.blast {
+  animation: math-combo-blast 0.62s cubic-bezier(0.12, 0.76, 0.27, 1) forwards;
+}
+
+@keyframes math-combo-boom {
+  0% { transform: scale(0.6) translateY(16px); opacity: 0; }
+  55% { transform: scale(1.18) translateY(-6px); opacity: 1; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+@keyframes math-combo-ring {
+  0% { transform: translate(-50%, -50%) scale(0.2); opacity: 0.95; }
+  100% { transform: translate(-50%, -50%) scale(calc(6 * var(--boom-intensity, 1))); opacity: 0; }
+}
+
+@keyframes math-combo-blast {
+  0% { transform: translate(-50%, -50%) scale(0.3); opacity: 0.98; }
+  60% { opacity: 0.7; }
+  100% { transform: translate(-50%, -50%) scale(calc(4.4 * var(--boom-intensity, 1))); opacity: 0; }
+}
+
+/* 右侧伤害 COMBO HUD 已下线 */
+.fx-combo-hud {
+  display: none;
+}
+
 /* === Directional FX (beam / mist / trail) === */
 .fx-dir-layer {
   position: absolute;

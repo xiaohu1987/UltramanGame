@@ -133,6 +133,7 @@
       this.bursts = 0;
       this.shake = { x: 0, y: 0, time: 0, duration: 0, power: 0 };
       this.flash = { a: 0, color: "255,255,255" };
+      this.flash.decay = 1.8;
       this.combo = 0;
       this.comboTimer = 0;
       this.comboMaxWindow = 3200;
@@ -174,6 +175,13 @@
           <div class="fx-combo-value">0</div>
           <div class="fx-combo-bar"><span></span></div>
         </div>
+        <div class="fx-math-combo-hud" hidden>
+          <div class="fx-math-combo-ring"></div>
+          <div class="fx-math-combo-blast"></div>
+          <div class="fx-math-combo-label">连击</div>
+          <div class="fx-math-combo-value">0</div>
+          <div class="fx-math-combo-sub">伤害/治疗 +0%</div>
+        </div>
       `;
       document.body.appendChild(this.root);
 
@@ -184,6 +192,12 @@
       this.comboHud = this.root.querySelector(".fx-combo-hud");
       this.comboValueEl = this.root.querySelector(".fx-combo-value");
       this.comboBarEl = this.root.querySelector(".fx-combo-bar span");
+      this.mathComboHud = this.root.querySelector(".fx-math-combo-hud");
+      this.mathComboValueEl = this.root.querySelector(".fx-math-combo-value");
+      this.mathComboSubEl = this.root.querySelector(".fx-math-combo-sub");
+      this.mathComboRingEl = this.root.querySelector(".fx-math-combo-ring");
+      this.mathComboBlastEl = this.root.querySelector(".fx-math-combo-blast");
+      this.mathCombo = 0;
 
       this.resize();
       window.addEventListener("resize", () => this.resize());
@@ -263,7 +277,8 @@
 
       // flash decay
       if (this.flash.a > 0) {
-        this.flash.a = Math.max(0, this.flash.a - dt * 1.8);
+        const decayRate = this.flash.decay || 1.8;
+        this.flash.a = Math.max(0, this.flash.a - dt * decayRate);
         if (this.flashLayer) {
           this.flashLayer.style.opacity = String(this.flash.a);
           this.flashLayer.style.background = `rgba(${this.flash.color}, ${Math.min(1, this.flash.a)})`;
@@ -418,6 +433,8 @@
     flashScreen(amount = 0.25, color = "255,255,255") {
       this.flash.a = Math.max(this.flash.a, Math.min(0.75, amount));
       this.flash.color = color;
+      // flashDecay：更久的衰减速率（毫秒），越小衰减越快
+      this.flash.decay = Math.max(0.6, (arguments[2] || 0) / 1000 || 1.8);
       if (this.flashLayer) {
         this.flashLayer.style.opacity = String(this.flash.a);
         this.flashLayer.style.background = `rgba(${color}, ${this.flash.a})`;
@@ -498,6 +515,7 @@
 
     showCombo(value, anchor = null) {
       if (!this.comboHud || !this.comboValueEl) return;
+      // 右侧伤害 COMBO HUD 已下线；该方法保留但不再弹出（避免误触）
       if (anchor) {
         const x = Math.max(62, Math.min(window.innerWidth - 62, anchor.x));
         const y = Math.max(76, anchor.y - 54);
@@ -519,6 +537,76 @@
       if (!this.comboHud) return;
       this.comboHud.hidden = true;
       this.comboHud.classList.remove("hot", "pop");
+    }
+
+    // ===== 心算连击特效（新增） =====
+    // 右侧伤害 COMBO HUD 已下线；心算连击改用右上红框 .fx-math-combo-hud
+    showMathCombo(combo, pct = 0) {
+      if (!this.mathComboHud || !this.mathComboValueEl) return;
+      this.mathCombo = combo >= 1 ? combo : 0;
+      this.mathComboHud.hidden = false;
+      this.mathComboHud.classList.remove("pop", "boom");
+      void this.mathComboHud.offsetWidth;
+      this.mathComboHud.classList.add("pop", "boom");
+      this.mathComboValueEl.textContent = String(this.mathCombo);
+      if (this.mathComboSubEl) {
+        this.mathComboSubEl.textContent = `伤害/治疗 +${Math.round(pct * 100)}%`;
+      }
+      this.mathComboHud.classList.toggle("max", combo >= 8);
+      const intensity = Math.max(0.4, Math.min(1.4, 0.5 + combo * 0.12));
+      this.mathComboHud.style.setProperty("--boom-intensity", String(intensity));
+      if (this.mathCombo >= 2) {
+        this.playMathComboBurst(combo, pct / 100);
+      }
+    }
+
+    resetMathCombo(reason) {
+      const had = this.mathCombo !== 0;
+      this.mathCombo = 0;
+      if (this.mathComboHud) {
+        this.mathComboHud.hidden = true;
+        this.mathComboHud.classList.remove("pop", "boom", "max");
+        this.mathComboHud.style.removeProperty("--boom-intensity");
+      }
+      if (had && this.mathComboSubEl) {
+        this.mathComboSubEl.textContent = "连击中断";
+      }
+      if (window.console && reason) {
+        console.debug("[math-combo] reset", reason);
+      }
+    }
+
+    playMathComboBurst(combo, pct) {
+      if (!this.mathComboHud) return;
+      const rect = this.mathComboHud.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+
+      const flashA = Math.min(0.5, 0.18 + combo * 0.03);
+      const flashColor = "255,138,76";
+      const flashDecay = 380 + combo * 30;
+      this.flashScreen(flashA, flashColor, flashDecay);
+
+      const countMain = Math.round(26 + combo * 6);
+      const power = 1 + Math.min(1.2, combo * 0.1);
+      const palette = combo >= 8 ? "crit" : "hit";
+      this.spawnParticles(cx, cy, countMain, palette, power);
+
+      const shakePower = 5 + Math.min(10, combo * 0.9);
+      this.shakeScreen(shakePower, 320);
+
+      if (this.mathComboRingEl) {
+        this.mathComboRingEl.classList.remove("blast");
+        void this.mathComboRingEl.offsetWidth;
+        this.mathComboRingEl.classList.add("blast");
+        setTimeout(() => this.mathComboRingEl && this.mathComboRingEl.classList.remove("blast"), 720);
+      }
+      if (this.mathComboBlastEl) {
+        this.mathComboBlastEl.classList.remove("blast");
+        void this.mathComboBlastEl.offsetWidth;
+        this.mathComboBlastEl.classList.add("blast");
+        setTimeout(() => this.mathComboBlastEl && this.mathComboBlastEl.classList.remove("blast"), 640);
+      }
     }
 
     pulseDom(el, className, duration = 520) {

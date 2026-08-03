@@ -11,6 +11,18 @@
   z-index: 20;
 }
 
+/* 右侧伤害 COMBO HUD 已下线：强制隐藏，避免遮挡右侧技能栏 */
+.fx-combo-hud {
+  display: none !important;
+}
+
+/* 心算连击 HUD：强制右上红框，避免被战斗布局覆盖 */
+.fx-math-combo-hud {
+  left: auto !important;
+  right: clamp(220px, 26vw, 360px) !important;
+  transform: none !important;
+}
+
 @media (max-width: 980px) {
   .fx-combo-hud {
     right: max(10px, env(safe-area-inset-right)) !important;

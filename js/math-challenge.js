@@ -7,8 +7,30 @@
   const STORAGE_KEY = "ultraman.difficulty";
   const DEFAULT_DIFFICULTY = "easy";
   const SUCCESS_BONUS = 1.05;
+  // 出题自动朗读开关（localStorage 持久化），默认开启
+  const SPEECH_ENABLED_KEY = "ultraman.speechEnabled";
+  const SPEECH_ENABLED_DEFAULT = true;
   // 最后 8 秒进入急迫红闪 + 急迫音效
   const URGENCY_SECONDS = 8;
+
+  function loadSpeechEnabled() {
+    try {
+      const saved = window.localStorage && window.localStorage.getItem(SPEECH_ENABLED_KEY);
+      if (saved === "0" || saved === "false") return false;
+      if (saved === "1" || saved === "true") return true;
+    } catch (_) {
+      /* ignore */
+    }
+    return SPEECH_ENABLED_DEFAULT;
+  }
+
+  function saveSpeechEnabled(on) {
+    try {
+      if (window.localStorage) window.localStorage.setItem(SPEECH_ENABLED_KEY, on ? "1" : "0");
+    } catch (_) {
+      /* ignore */
+    }
+  }
 
   /** @type {Record<string, { id: string, label: string, enabled: boolean, max: number, timeLimit: number, bonusMul: number, desc: string }>} */
   const DIFFICULTIES = {
@@ -657,7 +679,7 @@
    * 根据答题结果生成结算修正
    * @returns {{ success: boolean, powerMul: number, forceMiss: boolean, forceFail: boolean, reason: string }}
    */
-  function buildResolveModifier(difficultyId, correct) {
+  function buildResolveModifier(difficultyId, correct, combo = 0) {
     const cfg = getDifficulty(difficultyId);
     if (!cfg.enabled) {
       return {
@@ -669,12 +691,13 @@
       };
     }
     if (correct) {
+      const comboMult = 1 + 0.1 * Math.min(Math.max(combo, 0), 10);
       return {
         success: true,
-        powerMul: cfg.bonusMul || SUCCESS_BONUS,
+        powerMul: (cfg.bonusMul || SUCCESS_BONUS) * comboMult,
         forceMiss: false,
         forceFail: false,
-        reason: "correct",
+        reason: combo > 0 ? "combo" : "correct",
       };
     }
     return {
@@ -687,6 +710,27 @@
   }
 
   // ---------- 弹窗 UI（T4/T5） ----------
+
+  // 心算连击计数：连续答对次数；答错/超时/替换/放弃归零
+  let mathCombo = 0;
+
+  function bumpMathCombo() {
+    mathCombo = Math.min(mathCombo + 1, 9999);
+    return mathCombo;
+  }
+
+  function getMathCombo() {
+    return mathCombo;
+  }
+
+  function resetMathCombo(reason) {
+    if (mathCombo === 0) return 0;
+    mathCombo = 0;
+    if (window.ArcadeFX && typeof window.ArcadeFX.resetMathCombo === "function") {
+      window.ArcadeFX.resetMathCombo(reason || "fail");
+    }
+    return 0;
+  }
 
   let activeSession = null;
 
@@ -722,6 +766,9 @@
         </div>
         <div class="math-question" id="math-challenge-question">
           <div class="math-q-expr" id="math-challenge-expr">1 + 1 = ?</div>
+        </div>
+        <div class="math-speech-row">
+          <button id="math-challenge-speech-btn" class="btn math-speech-btn" type="button" aria-pressed="true">🔊 语音</button>
         </div>
         <div class="math-tip-panel" id="math-challenge-tip-panel" hidden>
           <div class="math-tip-head">
@@ -1058,10 +1105,35 @@
     }, 220);
   }
 
+  /** 把题目转成自然语言（7 + 5 = ? → “7 加 5 等于几”） */
+  function buildQuestionSpeechText(question) {
+    if (!question) return "";
+    return String(question.text || "")
+      .replace(/\+/g, "加")
+      .replace(/-/g, "减")
+      .replace(/=/g, "等于")
+      .replace(/\?/g, "几")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  /**
+   * 朗读当前题目本身（不读提醒文案）。
+   * 通过 speakMathTip 复用语音引擎/开关/降级逻辑。
+   */
+  function speakQuestion(question) {
+    if (!question) return false;
+    const text = buildQuestionSpeechText(question);
+    if (!text) return false;
+    return speakMathTip({ title: "", speechText: text }, question);
+  }
+
   function speakMathTip(tip, question) {
     if (!window.speechSynthesis || typeof window.SpeechSynthesisUtterance !== "function") {
       return false;
     }
+    // 语音开关关闭时静默跳过（自动朗读与手动提醒均受控）
+    if (!loadSpeechEnabled()) return false;
     // 优先用预构建文案，点击时少做字符串拼接
     const preText =
       tip && typeof tip.speechText === "string" && tip.speechText
@@ -1225,6 +1297,10 @@
   function closeModal(result) {
     if (!activeSession || activeSession.closed) return;
     activeSession.closed = true;
+    // 失败/超时/替换/放弃路径确保连击清零（正确路径在 finish 中保留）
+    if (!result.correct && !result.skipped) {
+      resetMathCombo(result.reason || "fail");
+    }
     stopUrgencyLoop();
     setUrgencyVisual(false);
     if (activeSession.raf) {
@@ -1311,6 +1387,16 @@
     }
     clearTipUi(root);
     warmMathTipSpeech();
+    // 出题自动朗读：只读题目本身（如 “7 加 5 等于几”），不读提醒文案
+    if (loadSpeechEnabled()) {
+      speakQuestion(question);
+    }
+    const speechBtn = root.querySelector("#math-challenge-speech-btn");
+    if (speechBtn) {
+      speechBtn.setAttribute("aria-pressed", loadSpeechEnabled() ? "true" : "false");
+      speechBtn.textContent = loadSpeechEnabled() ? "🔊 语音：开" : "🔇 语音：关";
+      speechBtn.classList.toggle("is-off", !loadSpeechEnabled());
+    }
     // 预先算好提醒文案，点击时只负责开讲，减少首句延迟
     const prebuiltTip = buildMathTip(question);
     const prebuiltSpeechText = buildMathTipSpeechText(prebuiltTip, question);
@@ -1335,6 +1421,26 @@
       const startedAt = performance.now();
       const totalMs = cfg.timeLimit * 1000;
 
+      // 语音开关按钮：切换开关并持久化；开启时立即朗读当前题目
+      const speechBtn = root.querySelector("#math-challenge-speech-btn");
+      if (speechBtn) {
+        speechBtn.onclick = (event) => {
+          if (event) event.preventDefault();
+          if (!activeSession || activeSession.closed || activeSession.finishing) return;
+          const next = !loadSpeechEnabled();
+          saveSpeechEnabled(next);
+          speechBtn.setAttribute("aria-pressed", next ? "true" : "false");
+          speechBtn.textContent = next ? "🔊 语音：开" : "🔇 语音：关";
+          speechBtn.classList.toggle("is-off", !next);
+          if (next) {
+            primeMathTipSpeechOnGesture();
+            speakQuestion(question);
+          } else {
+            stopMathTipSpeech();
+          }
+        };
+      }
+
       activeSession = {
         resolve,
         question,
@@ -1357,7 +1463,19 @@
       const finish = (correct, timedOut) => {
         if (!activeSession || activeSession.closed || activeSession.finishing) return;
         activeSession.finishing = true;
-        const mod = buildResolveModifier(cfg.id, correct);
+        // 心算连击：答对 +1 并展示右上红框 HUD；答错/超时清零重算
+        let mod;
+        if (correct) {
+          const n = bumpMathCombo();
+          mod = buildResolveModifier(cfg.id, true, n);
+          const mult = 1 + 0.1 * Math.min(n, 10);
+          if (window.ArcadeFX && typeof window.ArcadeFX.showMathCombo === "function") {
+            window.ArcadeFX.showMathCombo(n, mult - 1);
+          }
+        } else {
+          resetMathCombo(timedOut ? "timeout" : "wrong");
+          mod = buildResolveModifier(cfg.id, false);
+        }
         const targetUid = activeSession.targetUid;
 
         // lock UI + stop timer/urgency before exit FX
@@ -1520,6 +1638,9 @@
     buildMathTipSpeechChunks,
     isDamageSkillType,
     buildResolveModifier,
+    getMathCombo,
+    bumpMathCombo,
+    resetMathCombo,
     promptChallenge,
     abortChallenge,
     isChallengeOpen,

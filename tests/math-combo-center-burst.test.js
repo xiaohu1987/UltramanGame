@@ -66,11 +66,17 @@ assert(/\.fx-combo-hud[\s\S]*?display:\s*none/.test(arcadeCss), "arcade-fx 关�
 assert(/display:\s*none\s*!important/.test(overlayCss), "overlay 强制隐藏伤害 COMBO");
 assert(fxJs.includes("右侧伤害 COMBO HUD 已下线"), "showCombo 不再弹出右侧 COMBO");
 
-// 7) 提醒打断心算连击
+// 7) 提醒：不中断心算连击（确认设计：提醒只让下一次伤害/治疗减半，不清零连击）
+//    连击仅在 答错/超时/弹窗被替换 时清零，避免 UI 交互误杀居中爆发特效。
 const mathJs = read("js/math-challenge.js");
-assert(mathJs.includes('resetMathCombo("tip")'), "点提醒会 resetMathCombo");
-assert(mathJs.includes("提醒已用，连击中断"), "提醒后副标题提示连击中断");
-assert(mathJs.includes("会断连击"), "开局提示说明提醒会断连击");
+const tipJs = read("js/tip-half-and-voice.js");
+// 提醒按钮点击路径不调用 resetMathCombo（连击保护）
+assert(!/\.onclick[\s\S]{0,400}resetMathCombo/.test(mathJs), "点提醒不会 resetMathCombo（连击保护）");
+// 提醒激活「减半」逻辑确实存在
+assert(tipJs.includes("TipHalf.activate()"), "点提醒会激活减半（TipHalf）");
+// 开局提示说明提醒效果（减半，而非断连击）
+assert(mathJs.includes("可点「提醒」拆分"), "开局提示说明可点提醒拆分");
+assert(tipJs.includes("伤害/治疗减半") || mathJs.includes("伤害/治疗减半"), "提醒文案包含伤害/治疗减半");
 
 // 5) 不误伤角色完整显示规则
 assert(overlayCss.includes(".skill-owner-avatar"), "overlay 角色完整显示规则仍在");
